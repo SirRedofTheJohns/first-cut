@@ -187,3 +187,17 @@ Full agent runs (Ledgerly brief, preview mode, this account's free tiers, Oct 20
 **Bugs found on the way:**
 - `pydantic-settings` reads `.env` without exporting it, while LangChain integrations read API keys from `os.environ`. Fix: `load_dotenv(override=False)` in `get_settings()`. Tests disable it in `conftest.py`, because exporting a developer's `.env` into the test process leaked a real password into a "defaults" test.
 - The API module built its app at import time (`app = create_app()`), so importing it had side effects. It now runs with `uvicorn --factory firstcut.api.app:create_app`.
+
+## D028 — The public demo: Gradio on a ZeroGPU Space, two backends
+**Decision:** A Gradio app (`app/`) runs the same graph in preview mode (no WordPress, no approval) with two backends:
+- **Gemini 3.5 Flash-Lite** with Groq fallback: full site, ~30 s.
+- **Qwen3-8B from the Hugging Face Hub** with `transformers` on **ZeroGPU**: the same model family as the local default.
+
+`scripts/deploy_space.py` assembles the Space from source (the `firstcut` package, sample briefs, a Figma fixture so the demo never spends Figma quota) and uploads it. API keys are set as Space **secrets**, never as files, and the build folder is scanned for key patterns before upload.
+**ZeroGPU specifics:**
+- Weights are placed on `cuda` at import, which ZeroGPU emulates. Each LLM call is one `@spaces.GPU` task, billed to the *visitor's* daily quota (2 min anonymous, 5 min signed in).
+- To fit in that quota, the Qwen backend plans 3 pages (`Deps.max_pages`, enforced in code after the planner), skips extra review rounds, and runs one call at a time (`max_concurrency=1`). Measured on the live Space: 46 s end to end.
+- Qwen3's thinking mode is disabled in the chat template, so the quota isn't spent on hidden reasoning.
+- The wrapper (`ChatZeroGPU`) has no native tool calling, so `structured_call` uses its JSON-in-prompt path, the reason that path was built in phase 1.
+**Build failure found on deploy:** HF installs `gradio[mcp]`, which caps `pydantic<=2.12.5`, and adds `torch<=2.13` and `spaces` itself. Pinning `pydantic==2.14.1` made the build unresolvable. The Space now pins only our own stack (LangChain/LangGraph, transformers) and leaves shared libraries to pip; a local `uv pip compile` with the injected packages checks it.
+**Alternatives considered:** CPU Basic Spaces (reportedly no longer free for new accounts in 2026); HF Inference Providers (no free credits for free accounts).

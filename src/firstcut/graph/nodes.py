@@ -11,7 +11,6 @@ from firstcut.graph.state import Deps, SiteState, WriteTask
 from firstcut.integrations.figma import extract_style_guide, file_key
 from firstcut.integrations.gdocs import is_google_doc
 from firstcut.schemas import (
-    MAX_PAGES,
     ApprovalDecision,
     PageCopy,
     PageDraft,
@@ -53,10 +52,12 @@ def plan_sitemap(state: SiteState, runtime: Runtime[Deps]) -> SiteState:
         runtime,
         SiteMap,
         [
-            SystemMessage(PLANNER_SYSTEM.format(max_pages=MAX_PAGES)),
+            SystemMessage(PLANNER_SYSTEM.format(max_pages=runtime.context.max_pages)),
             HumanMessage(f"Client brief:\n\n{state['brief']}"),
         ],
     )
+    # The prompt asks for the limit; code enforces it (the homepage comes first).
+    sitemap.pages = sitemap.pages[: runtime.context.max_pages]
     return {"sitemap": sitemap}
 
 

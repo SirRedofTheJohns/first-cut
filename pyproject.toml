@@ -39,9 +39,13 @@ openai = [
 huggingface = [
     "langchain-huggingface>=1.2.3",
 ]
+demo = [
+    "gradio==6.30.0",
+]
 
 [dependency-groups]
 dev = [
+    "huggingface-hub>=1.33.0",
     "pytest>=8.3",
     "ruff>=0.8",
 ]

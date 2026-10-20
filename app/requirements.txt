@@ -1,0 +1,16 @@
+# Gradio comes from `sdk_version` in README.md; on ZeroGPU, Hugging Face also installs
+# `spaces` and a supported torch (<=2.13). Only our own stack is pinned: gradio[mcp] needs
+# pydantic<=2.12.5, so shared libraries like pydantic and httpx are left for pip to resolve.
+langchain==1.4.6
+langchain-core==1.6.12
+langgraph==1.2.16
+langchain-google-genai==4.4.2
+langchain-groq==1.1.3
+pydantic>=2.11,<3
+pydantic-settings>=2.7
+python-dotenv>=1.0
+httpx>=0.27
+google-auth>=2.30
+requests>=2.31
+transformers==5.20.2
+accelerate==1.15.0

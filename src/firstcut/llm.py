@@ -23,7 +23,9 @@ _DEFAULT_RPS = {"groq": 0.05}
 
 def get_chat_model(settings: Settings | None = None) -> BaseChatModel:
     settings = settings or get_settings()
-    return _build(settings, settings.llm_provider, settings.llm_model)
+    return _build(
+        settings, settings.llm_provider, settings.llm_model, settings.llm_requests_per_second
+    )
 
 
 def get_fallback_model(settings: Settings | None = None) -> BaseChatModel | None:
@@ -33,7 +35,9 @@ def get_fallback_model(settings: Settings | None = None) -> BaseChatModel | None
     return _build(settings, settings.llm_fallback_provider, settings.llm_fallback_model)
 
 
-def _build(settings: Settings, provider: str, model: str) -> BaseChatModel:
+def _build(settings: Settings, provider: str, model: str, rps: float = 0) -> BaseChatModel:
+    """`rps` overrides the provider's default throttle; it only applies to the primary model,
+    since each provider (and model) has its own free-tier limits."""
     if provider not in SUPPORTED_PROVIDERS:
         raise ValueError(
             f"Unsupported LLM provider {provider!r}; expected one of {SUPPORTED_PROVIDERS}"
@@ -46,7 +50,7 @@ def _build(settings: Settings, provider: str, model: str) -> BaseChatModel:
     if provider in ("groq", "google_genai"):
         # Free tiers answer bursts with 429 + Retry-After; let the SDK wait and retry.
         kwargs["max_retries"] = 6
-    rps = settings.llm_requests_per_second or _DEFAULT_RPS.get(provider, 0)
+    rps = rps or _DEFAULT_RPS.get(provider, 0)
     if rps > 0:
         kwargs["rate_limiter"] = InMemoryRateLimiter(requests_per_second=rps)
     return init_chat_model(model, model_provider=provider, **kwargs)

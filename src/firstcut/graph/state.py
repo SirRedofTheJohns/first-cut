@@ -7,6 +7,7 @@ from langchain_core.tools import BaseTool
 from firstcut.integrations.figma import FigmaClient
 from firstcut.integrations.gdocs import GoogleDocsClient
 from firstcut.schemas import (
+    MAX_PAGES,
     ApprovalDecision,
     PageDraft,
     PageSpec,
@@ -51,6 +52,8 @@ class Deps:
     llm: BaseChatModel
     fallback_llm: BaseChatModel | None = None
     max_revisions: int = 2
+    # Fewer pages = fewer LLM calls (the ZeroGPU demo has a few minutes of GPU per visitor).
+    max_pages: int = MAX_PAGES
     # None = preview mode: the graph stops after review and never touches WordPress.
     wp_tools: dict[str, BaseTool] | None = None
     figma: FigmaClient | None = None

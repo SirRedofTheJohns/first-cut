@@ -78,3 +78,10 @@ def test_a_node_that_exhausts_its_retries_is_rerun_once():
     state = run(ScriptedChatModel(respond=flaky))
     assert attempts["writer_calls_for_home"] == 4  # node re-run by RetryPolicy succeeded
     assert "home" in state["pages"]
+
+
+def test_page_limit_is_enforced_even_if_the_model_plans_more():
+    llm = ScriptedChatModel(respond=site_responder())
+    state = build_graph().invoke({"brief": BRIEF}, context=Deps(llm=llm, max_pages=2))
+    assert [p.slug for p in state["sitemap"].pages] == ["home", "workshops"]
+    assert set(state["pages"]) == {"home", "workshops"}

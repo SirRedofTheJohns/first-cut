@@ -100,7 +100,7 @@ def site_responder(
 
     def respond(messages: list[BaseMessage]) -> str | AIMessage:
         system = messages[0].content
-        if system == PLANNER_SYSTEM.format(max_pages=6):
+        if system.startswith(PLANNER_SYSTEM.split("{")[0]):  # any page limit
             return json.dumps(SITEMAP)
         if system == WRITER_SYSTEM:
             revision = "REVISION REQUEST" in messages[1].content
