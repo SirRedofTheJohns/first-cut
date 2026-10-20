@@ -21,6 +21,7 @@ dist/
 # Runtime data
 .cache/
 output/
+data/
 *.sqlite
 *.sqlite3
 *.db

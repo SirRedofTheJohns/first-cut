@@ -1,5 +1,7 @@
 import asyncio
 
+from langgraph.checkpoint.memory import InMemorySaver
+
 from firstcut.graph import Deps, build_graph
 from tests.fakes import (
     FakeWordPressClient,
@@ -13,13 +15,18 @@ SLUGS = {"home", "workshops", "contact"}
 
 
 def run(wp: FakeWordPressClient, **responder_kwargs) -> dict:
-    """Runs the whole graph; WordPress tools go through a real (in-memory) MCP session."""
+    """Runs the graph up to the approval pause; WordPress tools go through a real (in-memory)
+    MCP session."""
     llm = ScriptedChatModel(respond=site_responder(**responder_kwargs))
 
     async def go():
         async with mcp_wordpress_tools(wp) as tools:
-            deps = Deps(llm=llm, wp_tools=tools)
-            return await build_graph().ainvoke({"brief": "Masa Bakery"}, context=deps)
+            graph = build_graph(checkpointer=InMemorySaver())
+            return await graph.ainvoke(
+                {"brief": "Masa Bakery"},
+                {"configurable": {"thread_id": "t"}},
+                context=Deps(llm=llm, wp_tools=tools),
+            )
 
     return asyncio.run(go())
 
@@ -33,6 +40,8 @@ def test_agent_saves_every_page_as_a_draft():
     assert all(page["status"] == "draft" for page in wp.pages.values())
     # Content is rendered as Gutenberg blocks by code, not copied by the LLM.
     assert "<!-- wp:heading -->" in wp.pages[state["wp_pages"]["home"]["id"]]["content"]
+    # The run then pauses for a human.
+    assert "__interrupt__" in state
 
 
 def test_verification_saves_what_a_lazy_agent_skipped():

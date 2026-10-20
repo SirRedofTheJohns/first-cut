@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     # server over streamable HTTP, e.g. http://localhost:8765/mcp
     mcp_wordpress_url: str | None = None
 
+    # API
+    webhook_secret: SecretStr | None = None
+    webhook_tolerance_seconds: int = 300
+    checkpoint_db: str = "data/checkpoints.sqlite"
+    log_level: str = "INFO"
+
 
 @lru_cache
 def get_settings() -> Settings:

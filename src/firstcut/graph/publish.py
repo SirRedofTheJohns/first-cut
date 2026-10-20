@@ -47,6 +47,18 @@ async def publish_drafts(state: SiteState, runtime: Runtime[Deps]) -> SiteState:
     return {"wp_pages": saved}
 
 
+async def finalize(state: SiteState, runtime: Runtime[Deps]) -> SiteState:
+    """Runs only after human approval: make every saved draft live."""
+    wp = runtime.context.wp_tools
+    published = {}
+    for slug, page in state["wp_pages"].items():
+        if page["status"] != "publish":
+            args = {"page_id": page["id"], "status": "publish"}
+            page = {**page, **await call_tool(wp["update_page"], args)}
+        published[slug] = page
+    return {"wp_pages": published, "status": "published"}
+
+
 def _save_draft_tool(
     wp: dict[str, BaseTool],
     drafts: dict[str, PageDraft],

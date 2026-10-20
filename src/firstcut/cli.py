@@ -6,9 +6,12 @@ from pathlib import Path
 from typing import Annotated
 
 import typer
+from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.types import Command
 from rich.console import Console
 from rich.table import Table
 
+from firstcut.checkpoints import serializer
 from firstcut.config import get_settings
 from firstcut.graph import Deps, build_graph
 from firstcut.llm import get_chat_model
@@ -59,20 +62,44 @@ async def _run(brief: Path, preview: bool) -> dict:
             llm=get_chat_model(settings), max_revisions=settings.max_revisions, wp_tools=wp_tools
         )
 
+        graph = build_graph(checkpointer=InMemorySaver(serde=serializer()))
+        config = {"configurable": {"thread_id": "cli"}}
+        graph_input: dict | Command = {"brief_source": str(brief)}
         state: dict = {}
         started = time.perf_counter()
-        # "updates" drives the progress log; "values" keeps the latest full state.
-        async for mode, chunk in build_graph().astream(
-            {"brief_source": str(brief)}, context=deps, stream_mode=["updates", "values"]
-        ):
-            if mode == "values":
-                state = chunk
-                continue
-            for node, update in chunk.items():
-                detail = ", ".join(f"/{slug}" for slug in (update or {}).get("pages", {}))
-                console.print(f"[green]✓[/green] {node} {detail}")
+        while True:
+            # "updates" drives the progress log; "values" keeps the latest full state.
+            async for mode, chunk in graph.astream(
+                graph_input, config, context=deps, stream_mode=["updates", "values"]
+            ):
+                if mode == "values":
+                    state = chunk
+                    continue
+                for node, update in chunk.items():
+                    if isinstance(update, dict):
+                        detail = ", ".join(f"/{slug}" for slug in update.get("pages", {}))
+                        console.print(f"[green]✓[/green] {node} {detail}")
+            interrupts = (await graph.aget_state(config)).interrupts
+            if not interrupts:
+                break
+            _print_result(state, time.perf_counter() - started)
+            graph_input = Command(resume=_ask_approval(interrupts[0].value))
         _print_result(state, time.perf_counter() - started)
     return state
+
+
+def _ask_approval(request: dict) -> dict:
+    console.rule("[bold]Human approval[/bold]")
+    for page in request["pages"]:
+        console.print(f"  /{page['slug']}: {page['link']}")
+    if typer.confirm("Publish these pages?", default=False):
+        return {"approved": True}
+    console.print("Feedback as 'slug: change', one per line. Empty line to finish.")
+    feedback = {}
+    while line := typer.prompt("", default="", show_default=False).strip():
+        slug, _, text = line.partition(":")
+        feedback[slug.strip().lstrip("/")] = text.strip()
+    return {"approved": False, "feedback": feedback}
 
 
 def _print_result(state: dict, elapsed: float) -> None:
@@ -91,6 +118,8 @@ def _print_result(state: dict, elapsed: float) -> None:
         )
     console.print(table)
 
+    if status := state.get("status"):
+        console.print(f"Status: [bold]{status}[/bold]")
     review = state["review"]
     verdict = "[green]approved[/green]" if review.approved else "[yellow]open issues[/yellow]"
     console.print(f"Review: {verdict} after {state['revision']} round(s)")

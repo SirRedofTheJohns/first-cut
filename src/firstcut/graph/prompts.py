@@ -20,7 +20,9 @@ Flag only significant problems: facts that contradict or aren't in the brief, pl
 missing key information the brief asks for, wrong tone, or pages that don't fulfil their purpose.
 Do not flag minor stylistic preferences. Approve when the copy is good enough for a human editor.
 Every issue must be specific enough that a writer can fix it without guessing; if you can't
-point to a concrete fact or passage, it is not an issue. Set approved=true when there are no issues."""
+point to a concrete fact or passage, it is not an issue. Set approved=true when there are no issues.
+If the brief has an "Editor feedback" section, every point in it must be clearly visible on its
+page; flag the page if it is not."""
 
 
 PUBLISHER_SYSTEM = """\

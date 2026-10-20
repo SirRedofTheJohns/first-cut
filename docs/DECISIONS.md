@@ -102,3 +102,39 @@ Short records of the decisions that shape this project: what was chosen, why, an
 **Decision:** The graph tests build the real MCP server around an in-memory fake WordPress, connect over `mcp.shared.memory.create_connected_server_and_client_session`, and load tools with `load_mcp_tools`, exactly as in production but with no network or subprocess.
 **Why:** The tests caught two real contract details that unit tests with plain fake tools would have missed: adapter results are lists of content blocks, and errors are returned instead of raised.
 **Verified live:** the agent over stdio and over HTTP (Docker → WordPress), container-to-container access by service name (`http://mcp:8765/mcp`, so FastMCP's DNS-rebinding protection doesn't block it), and MCP Inspector CLI (`tools/list` shows the 4 tools with annotations; `tools/call` hits real WordPress).
+
+## D017 — Webhook security: HMAC over `timestamp.body`, replay window, idempotent deliveries
+**Decision:** `POST /webhooks/brief` requires `X-FirstCut-Timestamp` and `X-FirstCut-Signature: sha256=HMAC(secret, "{timestamp}.{raw body}")`, accepts timestamps within ±5 minutes, and compares signatures with `hmac.compare_digest`. An optional `X-FirstCut-Delivery` id is used as the run id, so a retried delivery returns the existing run (200) instead of starting a second one.
+**Why:**
+- The signature is checked against the **raw bytes** before any JSON parsing; re-serialized JSON may not be byte-identical to what was signed.
+- Signing the timestamp stops replays: an attacker can't reuse an old signature with a new timestamp.
+- Constant-time comparison avoids timing side channels.
+- Webhook senders retry on timeouts, so deliveries must be idempotent.
+- **Fail closed:** without `WEBHOOK_SECRET` the endpoint returns 503; it never runs unsigned.
+**Alternatives:** API keys in a header (no body integrity, no replay protection), or mTLS (overkill here).
+
+## D018 — Human in the loop: `interrupt` + `Command`, and feedback becomes part of the brief
+**Decision:** After the drafts are saved, `human_approval` calls `interrupt(payload)`. The run is checkpointed and the API reports `awaiting_approval`. `POST /runs/{id}/approval` resumes it with `Command(resume=decision)`. The node routes with `Command(goto=...)`:
+- approve → `finalize` (drafts → `publish`)
+- feedback per page → rewrite only those pages, then back to approval
+- reject with no feedback → end, drafts stay drafts
+**Details:** Resuming re-executes the node from the top, so nothing before `interrupt()` has side effects.
+**Found by live testing (twice):**
+1. The writer ignored "pre-orders close Thursday at 6pm" because its anti-hallucination rule only trusts facts in the brief. Fix: human feedback is appended to the brief as an authoritative "Editor feedback" section, so the writer *and* the reviewer accept the new facts without loosening the rule. The reviewer's revision budget is reset and it checks that each point is visible.
+2. Even then, the 8B model returned the previous draft unchanged when that draft was in the prompt as JSON: **0/4** requests applied (and 2/4 with the draft as plain text). Rewriting from brief + plan + request, without the previous draft: **4/4**. Revisions therefore don't include the previous draft. Nothing is lost, because every fact lives in the brief.
+
+## D019 — Persistence: async SQLite checkpointer with an explicit type allowlist
+**Decision:** `AsyncSqliteSaver` (file in `data/`, a Docker volume) via `firstcut.checkpoints.sqlite_checkpointer`, with a `JsonPlusSerializer` whose `allowed_msgpack_modules` lists our Pydantic state types.
+**Why:** Runs can wait for approval for days, across deploys. Verified live: a run paused, the API restarted twice, then feedback and approval completed it.
+**Security:** LangGraph warns (and will soon refuse) when it deserializes classes that aren't allowlisted, because loading arbitrary types from a tampered DB is a code-execution risk. The approval tests run with `LANGGRAPH_STRICT_MSGPACK=true`. Removing one type from the list makes them fail, which proves the check works.
+**Alternatives:** Postgres (`langgraph-checkpoint-postgres`) for multiple replicas; SQLite is enough for a single process and needs no extra service.
+
+## D020 — Streaming: SSE from `astream(["updates", "messages"])`
+**Decision:** Each run's graph executes in a background task. `updates` become `node` events with compact summaries; `messages` become `token` events (live LLM output, opt-in with `?tokens=true`). An interrupt becomes `awaiting_approval`, and each segment ends with a `status` event. Events have incremental ids, so a reconnecting `EventSource` sends `Last-Event-ID` and only gets what it missed.
+**Why SSE over WebSockets:** the traffic is one-way (server → client), SSE works over plain HTTP and through proxies, and browsers reconnect automatically.
+**Bug caught by tests:** `sse-starlette` sends `str(data)`, so a dict arrived as a Python repr (`{'type': ...}`), not JSON. Events are now `json.dumps`-ed explicitly.
+**Limitation:** The event log lives in memory and in one process; it feeds live progress only. Run state comes from the checkpointer, so `GET /runs/{id}` and approval keep working after a restart. Multiple replicas would need Redis pub/sub or similar.
+
+## D021 — Structured JSON logs with run context
+**Decision:** `structlog` with JSON output. `run_id` is bound with `structlog.contextvars` inside each run task, so every line from that run, including library calls, carries it. Log events: `run_started`, `webhook_rejected` (with reason), `approval_received`, `run_segment_started/finished`, `run_failed` (with traceback).
+**Tracing:** LangSmith is opt-in through its standard env vars (`LANGSMITH_TRACING`, `LANGSMITH_API_KEY`); LangChain picks them up with no code changes.

@@ -7,11 +7,24 @@
 ## Quick start (local)
 
 ```bash
-cp .env.example .env
-docker compose up -d          # WordPress at http://localhost:8080
-docker compose logs wpcli     # copy WP_APP_PASSWORD into .env
-uv sync
-uv run pytest
+cp .env.example .env                      # set WEBHOOK_SECRET
+ollama pull hf.co/Qwen/Qwen3-8B-GGUF:Q8_0
+docker compose up -d db wordpress wpcli   # WordPress at http://localhost:8080
+docker compose logs wpcli                 # copy WP_APP_PASSWORD into .env
+docker compose up -d --build mcp api      # MCP :8765, API :8000
+uv sync && uv run pytest
+```
+
+### Run it
+
+```bash
+# CLI: generate, save drafts, approve in the terminal
+uv run firstcut run briefs/masa-bakery.md            # --preview: no WordPress
+
+# API: signed webhook -> SSE progress -> approval
+uv run python scripts/send_webhook.py briefs/masa-bakery.md
+curl -X POST localhost:8000/runs/<run_id>/approval -H 'Content-Type: application/json'      -d '{"approved": false, "feedback": {"contact": "Mention pre-orders close Thursday 6pm"}}'
+curl -X POST localhost:8000/runs/<run_id>/approval -H 'Content-Type: application/json'      -d '{"approved": true}'
 ```
 
 ## WordPress MCP server

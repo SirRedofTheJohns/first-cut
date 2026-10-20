@@ -123,3 +123,13 @@ class ReviewResult(BaseModel):
         default_factory=list,
         description="Only significant problems. Empty when approved.",
     )
+
+
+class ApprovalDecision(BaseModel):
+    """A human's answer at the approval step."""
+
+    approved: bool
+    feedback: dict[str, str] = Field(
+        default_factory=dict,
+        description="When not approved: requested change per page slug. Empty = reject outright.",
+    )

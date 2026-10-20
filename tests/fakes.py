@@ -103,7 +103,7 @@ def site_responder(
         if system == PLANNER_SYSTEM.format(max_pages=6):
             return json.dumps(SITEMAP)
         if system == WRITER_SYSTEM:
-            revision = "This is a revision" in messages[1].content
+            revision = "REVISION REQUEST" in messages[1].content
             return json.dumps(page_copy("Revised" if revision else "Hello"))
         if system == REVIEWER_SYSTEM:
             review = pending_reviews.pop(0) if pending_reviews else {"approved": True, "issues": []}

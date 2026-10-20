@@ -1,10 +1,10 @@
 from dataclasses import dataclass
-from typing import Annotated, Any, TypedDict
+from typing import Annotated, Any, Literal, TypedDict
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.tools import BaseTool
 
-from firstcut.schemas import PageDraft, PageSpec, ReviewResult, SiteMap
+from firstcut.schemas import ApprovalDecision, PageDraft, PageSpec, ReviewResult, SiteMap
 
 
 def merge_pages(left: dict[str, PageDraft], right: dict[str, PageDraft]) -> dict[str, PageDraft]:
@@ -20,6 +20,8 @@ class SiteState(TypedDict, total=False):
     review: ReviewResult
     revision: int
     wp_pages: dict[str, dict[str, Any]]
+    approval: ApprovalDecision
+    status: Literal["published", "rejected"]
 
 
 class WriteTask(TypedDict):
@@ -29,7 +31,6 @@ class WriteTask(TypedDict):
     sitemap: SiteMap
     spec: PageSpec
     feedback: str | None
-    previous: PageDraft | None
 
 
 @dataclass
