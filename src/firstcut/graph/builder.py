@@ -1,8 +1,10 @@
 from langgraph.graph import END, START, StateGraph
+from langgraph.types import RetryPolicy
 
 from firstcut.graph import nodes
 from firstcut.graph.publish import finalize, publish_drafts
 from firstcut.graph.state import Deps, SiteState
+from firstcut.structured import StructuredOutputError
 
 
 def build_graph(checkpointer=None):
@@ -10,9 +12,12 @@ def build_graph(checkpointer=None):
     builder = StateGraph(SiteState, context_schema=Deps)
     builder.add_node("load_brief", nodes.load_brief)
     builder.add_node("load_style_guide", nodes.load_style_guide)
-    builder.add_node("plan_sitemap", nodes.plan_sitemap)
-    builder.add_node("write_page", nodes.write_page)
-    builder.add_node("review", nodes.review)
+    # LLM nodes already retry invalid output inside `structured_call`; if a node still gives
+    # up, LangGraph re-runs it once from scratch instead of failing the whole run.
+    llm_retry = RetryPolicy(max_attempts=2, retry_on=StructuredOutputError)
+    builder.add_node("plan_sitemap", nodes.plan_sitemap, retry_policy=llm_retry)
+    builder.add_node("write_page", nodes.write_page, retry_policy=llm_retry)
+    builder.add_node("review", nodes.review, retry_policy=llm_retry)
     builder.add_node("publish_drafts", publish_drafts)
     builder.add_node("human_approval", nodes.human_approval)
     builder.add_node("finalize", finalize)

@@ -45,3 +45,11 @@ def test_unpublishable_copy_is_rejected(body, error):
 def test_long_button_label_is_rejected():
     with pytest.raises(ValidationError, match="2-5 words"):
         draft("ok").model_validate({**draft("ok").model_dump(), "button_label": "x" * 41})
+
+
+def test_long_meta_description_is_trimmed_not_rejected():
+    page = draft("ok").model_validate(
+        {**draft("ok").model_dump(), "meta_description": "word " * 60}
+    )
+    assert len(page.meta_description) <= 160
+    assert page.meta_description.endswith("...")

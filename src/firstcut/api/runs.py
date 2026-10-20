@@ -144,6 +144,14 @@ def _to_events(mode: str, chunk: Any) -> list[dict]:
 
 def _summarize(node: str, update: dict | None) -> Any:
     update = update or {}
+    if node == "load_brief" and "brief" in update:
+        return {"characters": len(update["brief"])}
+    if node == "load_style_guide" and "style_guide" in update:
+        guide = update["style_guide"]
+        return {
+            "colors": [c.hex for c in guide.colors],
+            "fonts": [t.family for t in guide.typography],
+        }
     if node == "plan_sitemap":
         return {"pages": [f"{p.title} (/{p.slug})" for p in update["sitemap"].pages]}
     if node == "write_page":

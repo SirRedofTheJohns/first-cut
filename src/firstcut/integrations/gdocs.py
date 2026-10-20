@@ -63,10 +63,13 @@ class GoogleDocsClient:
 
 def to_markdown(document: dict[str, Any]) -> str:
     """Convert a Docs API document to markdown: headings, bullets, paragraphs, tables."""
-    lines = [f"# {document.get('title', 'Brief')}"]
+    title = document.get("title", "Brief")
+    lines = [f"# {title}"]
     for element in document.get("body", {}).get("content", []):
         if "paragraph" in element:
-            lines.append(_paragraph(element["paragraph"]))
+            line = _paragraph(element["paragraph"])
+            if line.lstrip("\n#").strip() != title:  # docs often repeat the title as a heading
+                lines.append(line)
         elif "table" in element:
             for row in element["table"].get("tableRows", []):
                 cells = [_cell_text(cell) for cell in row.get("tableCells", [])]

@@ -156,3 +156,13 @@ Short records of the decisions that shape this project: what was chosen, why, an
 ## D024 — Google Docs through a service account, without the heavyweight client
 **Decision:** `google-auth` mints a short-lived OAuth token from the service account key (scope `documents.readonly`), and `httpx` calls `documents.get`. The document is converted to markdown (headings, bullets, tables) before it reaches the LLM.
 **Why:** `google-api-python-client` adds a large discovery-based dependency for a single GET. A service account means no browser consent flow in a server context, and it can only read documents explicitly shared with its email. A 403/404 error tells the user exactly which email to share the doc with.
+
+## D025 — Failure handling: repair in code, retry the model, then retry the node
+**Found live:** One writer kept returning a 205-character meta description. After 3 attempts its `StructuredOutputError` failed the **entire run**, though the other five pages were fine.
+**Decision, in three layers:**
+1. **Repair what code can fix deterministically.** A long meta description is trimmed at a word boundary in the validator. Asking the model again rewrites the whole page (~15 s locally) for a field code can fix in microseconds.
+2. **Send back to the model only semantic problems** (HTML, placeholders, sentence-length button labels): `structured_call` feeds the validation error back, up to 3 attempts.
+3. **LangGraph `RetryPolicy(max_attempts=2, retry_on=StructuredOutputError)`** on the LLM nodes. If a node still gives up, LangGraph re-runs only that task from scratch; the parallel writers that succeeded are not repeated. A test simulates three bad outputs in a row and checks that the node's second run succeeds.
+
+## D026 — Phase 4 verification
+`firstcut run <Google Doc URL> --figma <Figma URL>` (and the same through the Docker API with `gdoc_url`/`figma_url`): the brief comes from a Google Doc read by the service account; the copy uses facts that exist **only** in that Doc (pre-orders close Thursday 6pm, 20-loaf wholesale minimum with Tuesday/Friday delivery, weekend hours taken from a Docs *table*); and every page carries the Figma brand (`#C2410C` buttons, Playfair Display headings), published after approval. The GCP project has billing **disabled**. The Gemini API key is restricted to `generativelanguage.googleapis.com`, and the service account has no IAM roles: it can read only documents shared with it.

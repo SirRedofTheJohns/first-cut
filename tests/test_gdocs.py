@@ -29,6 +29,7 @@ def test_docs_api_structure_becomes_markdown():
         "body": {
             "content": [
                 {"sectionBreak": {}},
+                paragraph("Brief — Northline PT", "HEADING_1"),  # repeated title is dropped
                 paragraph("Goals", "HEADING_1"),
                 paragraph("More online bookings", bullet=True),
                 paragraph("Physician referrals", bullet=True),

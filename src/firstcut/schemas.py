@@ -99,9 +99,11 @@ class PageCopy(BaseModel):
     @field_validator("meta_description")
     @classmethod
     def _short_meta(cls, value: str) -> str:
-        if len(value) > 200:
-            raise ValueError(f"meta_description must be under 160 characters, got {len(value)}")
-        return value
+        # Repaired in code rather than sent back to the model: a retry rewrites the whole
+        # page (~15 s locally) and models often repeat the same length. Cut at a word.
+        if len(value) <= 160:
+            return value
+        return value[:157].rsplit(" ", 1)[0].rstrip(",;:") + "..."
 
 
 class PageDraft(PageCopy):

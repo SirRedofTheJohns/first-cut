@@ -59,3 +59,22 @@ def test_issues_for_unknown_pages_are_ignored():
 
     assert state["review"].issues == []
     assert len(calls_with(llm, WRITER_SYSTEM)) == 3
+
+
+def test_a_node_that_exhausts_its_retries_is_rerun_once():
+    attempts = {"writer_calls_for_home": 0}
+    respond = site_responder()
+
+    def flaky(messages):
+        if (
+            messages[0].content == WRITER_SYSTEM
+            and "Write the page 'Home' (/home)" in messages[1].content
+        ):
+            attempts["writer_calls_for_home"] += 1
+            if attempts["writer_calls_for_home"] <= 3:  # all 3 inner attempts of try #1 fail
+                return "not json"
+        return respond(messages)
+
+    state = run(ScriptedChatModel(respond=flaky))
+    assert attempts["writer_calls_for_home"] == 4  # node re-run by RetryPolicy succeeded
+    assert "home" in state["pages"]
