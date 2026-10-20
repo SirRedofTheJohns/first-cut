@@ -49,6 +49,7 @@ class Deps:
     """Run-scoped dependencies, injected via LangGraph's runtime context so tests can swap them."""
 
     llm: BaseChatModel
+    fallback_llm: BaseChatModel | None = None
     max_revisions: int = 2
     # None = preview mode: the graph stops after review and never touches WordPress.
     wp_tools: dict[str, BaseTool] | None = None

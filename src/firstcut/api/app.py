@@ -1,6 +1,6 @@
 """HTTP API: a signed webhook starts a run, SSE streams its progress, a human approves it.
 
-uv run uvicorn firstcut.api.app:app --port 8000
+uv run uvicorn --factory firstcut.api.app:create_app --port 8000
 """
 
 import json
@@ -29,7 +29,7 @@ from firstcut.checkpoints import sqlite_checkpointer
 from firstcut.config import Settings, get_settings
 from firstcut.graph import Deps, build_graph
 from firstcut.integrations.factory import figma_client, gdocs_client
-from firstcut.llm import get_chat_model
+from firstcut.llm import get_chat_model, get_fallback_model
 from firstcut.logs import configure_logging
 from firstcut.mcp_client import wordpress_tools
 from firstcut.schemas import ApprovalDecision
@@ -184,11 +184,9 @@ async def _production_deps(settings: Settings) -> AsyncIterator[Deps]:
     async with wordpress_tools(settings) as tools:
         yield Deps(
             llm=get_chat_model(settings),
+            fallback_llm=get_fallback_model(settings),
             max_revisions=settings.max_revisions,
             wp_tools=tools,
             figma=figma_client(settings),
             gdocs=gdocs_client(settings),
         )
-
-
-app = create_app()

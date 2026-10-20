@@ -29,3 +29,15 @@ def test_provider_is_switched_by_config_only(monkeypatch):
 def test_unknown_provider_fails_fast():
     with pytest.raises(ValueError, match="Unsupported"):
         get_chat_model(settings(llm_provider="skynet"))
+
+
+def test_fallback_model_is_optional_and_configured_by_env(monkeypatch):
+    from firstcut.llm import get_fallback_model
+
+    assert get_fallback_model(settings()) is None
+    monkeypatch.setenv("GROQ_API_KEY", "test-key")
+    fallback = get_fallback_model(
+        settings(llm_fallback_provider="groq", llm_fallback_model="openai/gpt-oss-20b")
+    )
+    assert isinstance(fallback, ChatGroq)
+    assert fallback.max_retries == 6

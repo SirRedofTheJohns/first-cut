@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 
+from dotenv import load_dotenv
 from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -13,6 +14,9 @@ class Settings(BaseSettings):
     llm_provider: str = "ollama"
     llm_model: str = "hf.co/Qwen/Qwen3-8B-GGUF:Q8_0"
     llm_temperature: float = 0.3
+    # Optional second provider used when the primary errors (e.g. Gemini 429 -> Groq).
+    llm_fallback_provider: str | None = None
+    llm_fallback_model: str | None = None
     # Client-side throttle for rate-limited free tiers (Groq, Gemini). 0 disables it.
     llm_requests_per_second: float = 0
     ollama_base_url: str = "http://localhost:11434"
@@ -44,4 +48,8 @@ class Settings(BaseSettings):
 
 @lru_cache
 def get_settings() -> Settings:
+    # pydantic-settings reads .env into Settings but doesn't export it, while LangChain
+    # integrations read provider keys (GOOGLE_API_KEY, GROQ_API_KEY...) from os.environ.
+    # Real environment variables (e.g. Space secrets) still win: override=False.
+    load_dotenv(".env", override=False)
     return Settings()

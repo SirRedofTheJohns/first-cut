@@ -20,6 +20,7 @@ dependencies = [
     "mcp[cli]>=1.30.0",
     "pydantic>=2.10",
     "pydantic-settings>=2.7",
+    "python-dotenv>=1.2.4",
     "requests>=2.34.2",
     "rich>=15.0.0",
     "sse-starlette>=3.5.0",

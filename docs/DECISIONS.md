@@ -166,3 +166,24 @@ Short records of the decisions that shape this project: what was chosen, why, an
 
 ## D026 — Phase 4 verification
 `firstcut run <Google Doc URL> --figma <Figma URL>` (and the same through the Docker API with `gdoc_url`/`figma_url`): the brief comes from a Google Doc read by the service account; the copy uses facts that exist **only** in that Doc (pre-orders close Thursday 6pm, 20-loaf wholesale minimum with Tuesday/Friday delivery, weekend hours taken from a Docs *table*); and every page carries the Figma brand (`#C2410C` buttons, Playfair Display headings), published after approval. The GCP project has billing **disabled**. The Gemini API key is restricted to `generativelanguage.googleapis.com`, and the service account has no IAM roles: it can read only documents shared with it.
+
+## D027 — Cloud models for the hosted demo, chosen by measurement
+Full agent runs (Ledgerly brief, preview mode, this account's free tiers, Oct 2026):
+
+| Model | Result |
+|---|---|
+| Gemini `gemini-2.5-flash` | **404**: "no longer available to new users" |
+| Gemini `gemini-3.8-flash` | Works; 53 s for a *single* call (heavy thinking) |
+| Gemini `gemini-3.1-flash-lite` | Approved site in 111 s (RPM throttling dominates) |
+| **Gemini `gemini-3-flash-preview`** | **Approved site in 39 s → primary** |
+| Groq `openai/gpt-oss-20b` | Fails: empty generations in strict JSON mode, and forced tool calls refused 0/2 on the writer prompt |
+| **Groq `openai/gpt-oss-120b`** | 2/2 with both methods; full site in ~8 min under 8K TPM → **fallback** |
+
+**Fallback design:** `llm.with_fallbacks()` returns a plain Runnable that loses `with_structured_output`, so the fallback wraps the structured runnables instead (`structured_call(..., fallback=...)`). It fires on provider errors (429, 5xx, 404), not on invalid output, which the retry loop already handles. Verified by pointing the primary at the 404 model: the call completed on Groq.
+**Provider quirks absorbed in one place (`structured_call`):**
+- Groq uses `method="json_schema"`. Its default forced tool call was refused 1 in 4 times ("Tool choice is required…").
+- Providers that validate JSON server-side reject a bad generation with **HTTP 400**. That is retried like invalid output; other errors (401, 429, network) still propagate.
+- Groq gets a default client-side limiter of 0.05 req/s: 8K tokens/min ÷ ~2.5K tokens per call. Six parallel writers otherwise produced 429s the SDK's retries couldn't absorb. `max_retries=6` for the free-tier providers.
+**Bugs found on the way:**
+- `pydantic-settings` reads `.env` without exporting it, while LangChain integrations read API keys from `os.environ`. Fix: `load_dotenv(override=False)` in `get_settings()`. Tests disable it in `conftest.py`, because exporting a developer's `.env` into the test process leaked a real password into a "defaults" test.
+- The API module built its app at import time (`app = create_app()`), so importing it had side effects. It now runs with `uvicorn --factory firstcut.api.app:create_app`.

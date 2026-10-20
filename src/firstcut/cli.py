@@ -16,7 +16,7 @@ from firstcut.config import get_settings
 from firstcut.graph import Deps, build_graph
 from firstcut.integrations.factory import figma_client, gdocs_client
 from firstcut.integrations.gdocs import is_google_doc
-from firstcut.llm import get_chat_model
+from firstcut.llm import get_chat_model, get_fallback_model
 from firstcut.mcp_client import wordpress_tools
 
 app = typer.Typer(help="First Cut: brief in, reviewed site draft out.", no_args_is_help=True)
@@ -66,6 +66,7 @@ async def _run(brief: str, figma: str | None, preview: bool) -> dict:
             wp_tools = await stack.enter_async_context(wordpress_tools(settings))
         deps = Deps(
             llm=get_chat_model(settings),
+            fallback_llm=get_fallback_model(settings),
             max_revisions=settings.max_revisions,
             wp_tools=wp_tools,
             figma=figma_client(settings),

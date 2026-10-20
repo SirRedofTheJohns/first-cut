@@ -21,6 +21,12 @@ from firstcut.schemas import (
 from firstcut.structured import structured_call
 
 
+def _structured[T](runtime: Runtime[Deps], schema: type[T], messages) -> T:
+    return structured_call(
+        runtime.context.llm, schema, messages, fallback=runtime.context.fallback_llm
+    )
+
+
 def load_brief(state: SiteState, runtime: Runtime[Deps]) -> SiteState:
     if state.get("brief"):
         return {}
@@ -43,8 +49,8 @@ def load_style_guide(state: SiteState, runtime: Runtime[Deps]) -> SiteState:
 
 
 def plan_sitemap(state: SiteState, runtime: Runtime[Deps]) -> SiteState:
-    sitemap = structured_call(
-        runtime.context.llm,
+    sitemap = _structured(
+        runtime,
         SiteMap,
         [
             SystemMessage(PLANNER_SYSTEM.format(max_pages=MAX_PAGES)),
@@ -85,17 +91,15 @@ def write_page(task: WriteTask, runtime: Runtime[Deps]) -> SiteState:
             f"{request}\n\nMake every point of the revision request clearly visible in the "
             f"copy; add or rename a section if needed. Revision request: {task['feedback']}"
         )
-    copy = structured_call(
-        runtime.context.llm, PageCopy, [SystemMessage(WRITER_SYSTEM), HumanMessage(request)]
-    )
+    copy = _structured(runtime, PageCopy, [SystemMessage(WRITER_SYSTEM), HumanMessage(request)])
     draft = PageDraft(slug=spec.slug, title=spec.title, **copy.model_dump())
     return {"pages": {spec.slug: draft}}
 
 
 def review(state: SiteState, runtime: Runtime[Deps]) -> SiteState:
     pages = "\n\n".join(page.model_dump_json() for page in state["pages"].values())
-    result = structured_call(
-        runtime.context.llm,
+    result = _structured(
+        runtime,
         ReviewResult,
         [
             SystemMessage(REVIEWER_SYSTEM),
