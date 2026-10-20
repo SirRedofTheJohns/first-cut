@@ -1,7 +1,8 @@
 from dataclasses import dataclass
-from typing import Annotated, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from langchain_core.language_models import BaseChatModel
+from langchain_core.tools import BaseTool
 
 from firstcut.schemas import PageDraft, PageSpec, ReviewResult, SiteMap
 
@@ -18,6 +19,7 @@ class SiteState(TypedDict, total=False):
     pages: Annotated[dict[str, PageDraft], merge_pages]
     review: ReviewResult
     revision: int
+    wp_pages: dict[str, dict[str, Any]]
 
 
 class WriteTask(TypedDict):
@@ -36,3 +38,5 @@ class Deps:
 
     llm: BaseChatModel
     max_revisions: int = 2
+    # None = preview mode: the graph stops after review and never touches WordPress.
+    wp_tools: dict[str, BaseTool] | None = None

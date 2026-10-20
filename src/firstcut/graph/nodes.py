@@ -85,7 +85,7 @@ def review(state: SiteState, runtime: Runtime[Deps]) -> SiteState:
 def route_after_review(state: SiteState, runtime: Runtime[Deps]) -> list[Send] | str:
     result = state["review"]
     if result.approved or not result.issues or state["revision"] > runtime.context.max_revisions:
-        return END
+        return "publish_drafts" if runtime.context.wp_tools else END
 
     feedback: dict[str, list[str]] = {}
     for issue in result.issues:

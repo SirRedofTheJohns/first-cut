@@ -14,7 +14,7 @@ PROMPT = [HumanMessage("write it")]
 def test_fallback_extracts_json_wrapped_in_prose():
     llm = ScriptedChatModel(respond=lambda _: f"Sure!\n```json\n{json.dumps(page_copy())}\n```")
     result = structured_call(llm, PageCopy, PROMPT)
-    assert result.call_to_action == "Pre-order now"
+    assert result.button_label == "Pre-order now"
     # The schema was injected into the prompt because the fake has no native support.
     assert "JSON schema" in llm.calls[0][-1].content
 

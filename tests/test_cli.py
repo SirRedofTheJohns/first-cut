@@ -14,7 +14,7 @@ def test_run_prints_progress_and_saves_json(tmp_path, monkeypatch):
     brief.write_text("Masa Bakery brief", encoding="utf-8")
     out = tmp_path / "site.json"
 
-    result = CliRunner().invoke(cli.app, ["run", str(brief), "--out", str(out)])
+    result = CliRunner().invoke(cli.app, ["run", str(brief), "--out", str(out), "--preview"])
 
     assert result.exit_code == 0, result.output
     assert "plan_sitemap" in result.output

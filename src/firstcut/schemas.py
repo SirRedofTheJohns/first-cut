@@ -25,7 +25,8 @@ class PageSpec(BaseModel):
     sections: list[str] = Field(
         min_length=2,
         max_length=6,
-        description="Ordered section headings planned for this page.",
+        description="Ordered topics this page covers, e.g. 'Founders story', 'Weekend "
+        "pre-orders'. Content topics, not layout names like 'Hero section'.",
     )
 
     @field_validator("slug")
@@ -53,11 +54,28 @@ class SiteMap(BaseModel):
         return self
 
 
+_HTML_TAG = re.compile(r"</?[a-zA-Z][^>]*>")
+_PLACEHOLDER = re.compile(r"\[[^\]]{2,}\]|lorem ipsum", re.IGNORECASE)
+
+
 class PageSection(BaseModel):
-    heading: str
+    heading: str = Field(description="A compelling heading written for visitors.")
     body: str = Field(
-        description="Final, publishable copy for this section. 40-120 words. No placeholders."
+        description="Final, publishable plain-text copy for this section, 40-120 words. "
+        "No HTML, no forms, no [placeholders] or image notes."
     )
+
+    # Rules live in validators, not in JSON-schema constraints: Ollama compiles schema
+    # constraints into its decoding grammar, which cuts text mid-word instead of making the
+    # model rewrite it. A validator error is fed back to the model, which then fixes the text.
+    @field_validator("body")
+    @classmethod
+    def _publishable(cls, value: str) -> str:
+        if _HTML_TAG.search(value):
+            raise ValueError("section body must be plain text; remove all HTML tags and forms")
+        if match := _PLACEHOLDER.search(value):
+            raise ValueError(f"section body contains a placeholder: {match.group(0)!r}")
+        return value
 
 
 class PageCopy(BaseModel):
@@ -65,19 +83,17 @@ class PageCopy(BaseModel):
 
     meta_description: str = Field(description="SEO meta description, max 160 characters.")
     sections: list[PageSection] = Field(min_length=1, max_length=6)
-    call_to_action: str = Field(
-        description="Button label for the primary call to action, 2-5 words, no brackets. "
-        "E.g. 'Book a free tasting'."
+    # Named `button_label`, not `call_to_action`: small models follow field names more than
+    # descriptions, and "call_to_action" invited full sentences.
+    button_label: str = Field(
+        description="Text on the page's main button, 2-5 words. E.g. 'Book a free tasting'."
     )
 
-    # Length limits live in validators, not in Field(max_length=...): schema constraints are
-    # compiled into Ollama's decoding grammar, which truncates text mid-word instead of making
-    # the model write something shorter. A validator error is fed back so the model rewrites.
-    @field_validator("call_to_action")
+    @field_validator("button_label")
     @classmethod
-    def _short_cta(cls, value: str) -> str:
+    def _short_label(cls, value: str) -> str:
         if len(value) > 40:
-            raise ValueError(f"call_to_action must be a 2-5 word button label, got {value!r}")
+            raise ValueError(f"button_label must be 2-5 words, got {value!r}")
         return value
 
     @field_validator("meta_description")

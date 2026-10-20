@@ -50,7 +50,7 @@ Short records of the decisions that shape this project: what was chosen, why, an
 **Why:** It is the same code path for Ollama, Groq, Gemini, and for raw `transformers` models on the ZeroGPU Space, which have no native tool calling. `include_raw=True` returns parsing errors instead of raising them, so they can be fed back. The unit-test fakes have no native support, so the fallback path is covered by tests too.
 
 ## D010 — Semantic limits in validators, not in JSON-schema constraints
-**Decision:** Length limits (CTA ≤ 40 chars, meta description) are `field_validator`s, not `Field(max_length=...)`.
+**Decision:** Content rules (button label ≤ 40 chars, meta description length, no HTML, no `[placeholders]`) are `field_validator`s, not `Field(max_length=...)`.
 **Why (found by testing):** Ollama compiles the JSON schema into a decoding grammar. With `maxLength: 40` the model didn't write a shorter CTA; the grammar cut it mid-sentence ("Complete the form below to start the off"). A validator is not part of the schema, so the model writes freely, and if the result is too long it gets the error message and rewrites the CTA properly.
 
 ## D011 — Default local model: Qwen3-8B (Q8_0 GGUF) pulled from the Hugging Face Hub
@@ -65,3 +65,20 @@ Short records of the decisions that shape this project: what was chosen, why, an
 
 **Why Qwen3-8B over qwen3.5:9b (both pass everything):** It is the same model the Hugging Face ZeroGPU demo runs with `transformers`, so development and the public demo behave alike, and it comes straight from the HF Hub. `qwen3.5:9b` is a drop-in alternative (`LLM_MODEL=qwen3.5:9b`) with faster tool calls.
 **End-to-end:** All 3 sample briefs produce a complete, approved site in ~95–140 s locally. Hallucination checks pass: Ledgerly's copy says SOC 2 is "in progress" (the brief forbids claiming certification), and Northline lists all four insurers and the $140 cash price.
+
+**Also learned:** For small models, field *names* steer output more than descriptions do. `call_to_action` kept getting full sentences; renaming it to `button_label` (same description) took first-try validity of the writer's output from 0/12 to 9/12. The remaining 3 failures were real catches (an invented `[insert date]`, a fake testimonial from `[Café Name]`), and the retry loop fixed them before they reached WordPress.
+
+## D012 — Publishing: a tool-calling agent for orchestration, code for invariants
+**Decision:** `publish_drafts` runs a small `create_agent` loop with two tools, `list_pages` and `save_draft(slug, page_id?)`. The LLM never handles page HTML: `save_draft` renders the draft to Gutenberg blocks itself. Afterwards, a deterministic check saves any draft the agent skipped, and each page is tagged `saved_by: agent | verification` for observability.
+**Alternatives:** (a) A plain loop with no LLM: simpler, but it wouldn't exercise tool calling, which is a core requirement of this project. (b) A generic `create_page(title, content)` tool: the model would have to copy kilobytes of HTML into tool arguments, which is slow, expensive and error-prone for 8B models.
+**Invariants enforced in code, not in the prompt:**
+- No duplicates: if a page with the slug exists (or was saved earlier in this run), it gets updated, even when the model forgets `page_id`.
+- A wrong `page_id` returns an explanatory error to the model instead of overwriting another page.
+- Live (published) pages are never modified; they only change through the human approval step.
+**Result:** Two consecutive live runs: every page saved by the agent, and the second run updated the same page ids instead of creating copies.
+
+## D013 — WordPress client: async httpx, Gutenberg blocks, JSON-text tool results
+- **Async**: MCP tools (phase 3) are async-only, so the WordPress path is async end-to-end, and the CLI runs the graph with `astream`. The LLM nodes stay sync; LangGraph runs them in a thread pool.
+- **Gutenberg block markup** (`<!-- wp:paragraph -->…`) rather than raw HTML, so editors can keep working on the pages in the block editor. All model text is HTML-escaped (defense in depth on top of the no-HTML validator).
+- **Tools return JSON strings**, like MCP tool results. A tool that returned a Python list put a list into the `ToolMessage`, which chat providers expect to be text. Matching MCP's contract means the backend swap in phase 3 doesn't change what the LLM sees.
+- **`status=any&context=edit`** when listing, so drafts (and raw titles) are visible to the agent.
