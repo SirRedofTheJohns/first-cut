@@ -30,6 +30,7 @@ Short records of the decisions that shape this project: what was chosen, why, an
 ## D005 — Secrets hygiene
 **Decision:** Secrets come only from environment variables (`.env` locally, Space secrets in the cloud) and are typed as `SecretStr`, so they never show up in logs or reprs. `.gitignore` excludes `.env`, `secrets/` and credential JSON files. CI runs gitleaks over the full git history.
 **Why:** Leaking a token in a public portfolio repo is the fastest way to fail a security-minded review.
+**False positives:** gitleaks flagged Figma *style keys* and the Figma *file key* in a test fixture (8 findings). Both are public identifiers; reading the file still needs `FIGMA_TOKEN`. `.gitleaks.toml` keeps the default rules and allow-lists only that fixture path and that file key. A control scan of the local `.env` still reports its real secrets, so the scanner isn't blinded.
 
 ## D006 — Ruff for linting and formatting; integration tests opt-in
 **Decision:** Ruff handles both linting and formatting. Pytest skips tests marked `integration` by default (`-m 'not integration'`).

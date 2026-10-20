@@ -1,0 +1,8 @@
+# Default gitleaks rules, plus documented false positives.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Figma style keys and file keys are public identifiers, not credentials (access needs FIGMA_TOKEN)"
+paths = ['''tests/fixtures/figma_[a-z_]+\.json''']
+regexes = ['''9z5IYb5tdxSrHHd3XJGWoz''']
