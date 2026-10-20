@@ -138,3 +138,21 @@ Short records of the decisions that shape this project: what was chosen, why, an
 ## D021 — Structured JSON logs with run context
 **Decision:** `structlog` with JSON output. `run_id` is bound with `structlog.contextvars` inside each run task, so every line from that run, including library calls, carries it. Log events: `run_started`, `webhook_rejected` (with reason), `approval_received`, `run_segment_started/finished`, `run_failed` (with traceback).
 **Tracing:** LangSmith is opt-in through its standard env vars (`LANGSMITH_TRACING`, `LANGSMITH_API_KEY`); LangChain picks them up with no code changes.
+
+## D022 — Figma brand styles: one cached file read, values resolved through layers
+**Decision:** `FigmaClient` reads `GET /v1/files/:key` with a personal access token that has only the `file_content:read` scope. `extract_style_guide()` maps each local **style** (not Variables) to its value by walking the document, because the file's `styles` map holds only names and types.
+**Constraints found:**
+- **Rate limit:** on the free (Starter) plan, file reads are a Tier 1 endpoint, capped at **~20 per month**. Responses are cached on disk for 24 h (`FIGMA_CACHE_HOURS`, `--refresh` available in code). On HTTP 429 a stale cached copy is used instead of failing. The cheaper `/meta` endpoint (to check the version first) needs the `file_metadata:read` scope, which the token deliberately doesn't have.
+- **Variables API:** Enterprise only, so the integration uses Styles.
+- **Styles can't be created through the REST API**; only the Plugin API can. `scripts/figma_brand_plugin/` is a small development plugin that creates the sample brand (4 color + 2 text styles, applied to layers) in one click. It is idempotent. The ChatGPT Figma app only creates FigJam and Slides, so it couldn't do this.
+**Test fixture:** a trimmed copy of the real API response (`tests/fixtures/figma_masa_brand.json`). `thumbnailUrl` is removed because it contains a presigned AWS URL that secret scanners flag.
+
+## D023 — Applying the brand in WordPress without breaking the block editor
+**Decision:** Brand styling is one Custom HTML block (Google Fonts `<link>` plus a `<style>` scoped to `.firstcut-brand`) and a Group block with that class around the page content. Colors and fonts are assigned to roles by name (primary/accent, text, heading, body), falling back to order and size. The button label color is the palette color with the highest **WCAG contrast** against the button background.
+**Why not inline styles on each block:** Gutenberg validates each block by re-serializing its attributes. Hand-written inline styles that don't match byte for byte show up as "This block contains unexpected or invalid content". A scoped stylesheet keeps every content block standard and editable.
+**Security:** Figma values are third-party input. Hex colors are normalized by our own code, and font family names must match `[A-Za-z0-9 -]+` before they reach CSS or a URL (a test feeds `X}</style><script>`). Saving `<style>`/`<link>` needs the `unfiltered_html` capability, which the agent's admin user has; verified on the live page.
+**Alternative for production:** writing the palette and fonts into the theme's Global Styles (`theme.json`) through the REST API, which would make them site-wide and editable in the Site Editor. That needs one more MCP tool and a block theme.
+
+## D024 — Google Docs through a service account, without the heavyweight client
+**Decision:** `google-auth` mints a short-lived OAuth token from the service account key (scope `documents.readonly`), and `httpx` calls `documents.get`. The document is converted to markdown (headings, bullets, tables) before it reaches the LLM.
+**Why:** `google-api-python-client` adds a large discovery-based dependency for a single GET. A service account means no browser consent flow in a server context, and it can only read documents explicitly shared with its email. A 403/404 error tells the user exactly which email to share the doc with.

@@ -4,7 +4,16 @@ from typing import Annotated, Any, Literal, TypedDict
 from langchain_core.language_models import BaseChatModel
 from langchain_core.tools import BaseTool
 
-from firstcut.schemas import ApprovalDecision, PageDraft, PageSpec, ReviewResult, SiteMap
+from firstcut.integrations.figma import FigmaClient
+from firstcut.integrations.gdocs import GoogleDocsClient
+from firstcut.schemas import (
+    ApprovalDecision,
+    PageDraft,
+    PageSpec,
+    ReviewResult,
+    SiteMap,
+    StyleGuide,
+)
 
 
 def merge_pages(left: dict[str, PageDraft], right: dict[str, PageDraft]) -> dict[str, PageDraft]:
@@ -13,8 +22,10 @@ def merge_pages(left: dict[str, PageDraft], right: dict[str, PageDraft]) -> dict
 
 
 class SiteState(TypedDict, total=False):
-    brief_source: str
+    brief_source: str  # markdown file path or Google Doc URL
     brief: str
+    figma_url: str
+    style_guide: StyleGuide
     sitemap: SiteMap
     pages: Annotated[dict[str, PageDraft], merge_pages]
     review: ReviewResult
@@ -41,3 +52,5 @@ class Deps:
     max_revisions: int = 2
     # None = preview mode: the graph stops after review and never touches WordPress.
     wp_tools: dict[str, BaseTool] | None = None
+    figma: FigmaClient | None = None
+    gdocs: GoogleDocsClient | None = None

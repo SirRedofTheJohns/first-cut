@@ -1,4 +1,6 @@
 import asyncio
+import json
+from pathlib import Path
 
 from langgraph.checkpoint.memory import InMemorySaver
 
@@ -74,3 +76,31 @@ def test_preview_mode_never_touches_wordpress():
     llm = ScriptedChatModel(respond=site_responder())
     state = build_graph().invoke({"brief": "Masa Bakery"}, context=Deps(llm=llm))
     assert "wp_pages" not in state
+
+
+class FixtureFigma:
+    def get_file(self, key, refresh=False):
+        assert key == "9z5IYb5tdxSrHHd3XJGWoz"
+        path = Path(__file__).parent / "fixtures" / "figma_masa_brand.json"
+        return json.loads(path.read_text(encoding="utf-8"))
+
+
+def test_figma_brand_is_applied_to_every_draft():
+    wp = FakeWordPressClient()
+    llm = ScriptedChatModel(respond=site_responder())
+
+    async def go():
+        async with mcp_wordpress_tools(wp) as tools:
+            graph = build_graph(checkpointer=InMemorySaver())
+            return await graph.ainvoke(
+                {
+                    "brief": "Masa Bakery",
+                    "figma_url": "https://www.figma.com/design/9z5IYb5tdxSrHHd3XJGWoz/Brand",
+                },
+                {"configurable": {"thread_id": "t"}},
+                context=Deps(llm=llm, wp_tools=tools, figma=FixtureFigma()),
+            )
+
+    state = asyncio.run(go())
+    assert state["style_guide"].colors[0].hex == "#C2410C"
+    assert all("background:#C2410C" in page["content"] for page in wp.pages.values())

@@ -14,6 +14,8 @@ from rich.table import Table
 from firstcut.checkpoints import serializer
 from firstcut.config import get_settings
 from firstcut.graph import Deps, build_graph
+from firstcut.integrations.factory import figma_client, gdocs_client
+from firstcut.integrations.gdocs import is_google_doc
 from firstcut.llm import get_chat_model
 from firstcut.mcp_client import wordpress_tools
 
@@ -28,9 +30,10 @@ def main() -> None:
 
 @app.command()
 def run(
-    brief: Annotated[
-        Path, typer.Argument(exists=True, dir_okay=False, help="Markdown brief file.")
-    ],
+    brief: Annotated[str, typer.Argument(help="Markdown brief file or Google Doc URL.")],
+    figma: Annotated[
+        str | None, typer.Option(help="Figma file URL with the brand's color and text styles.")
+    ] = None,
     out: Annotated[
         Path | None, typer.Option(help="Write the final sitemap and pages as JSON here.")
     ] = None,
@@ -39,19 +42,22 @@ def run(
     ] = False,
 ) -> None:
     """Plan and write a site from a brief, then save it to WordPress as drafts."""
-    state = asyncio.run(_run(brief, preview))
+    if not is_google_doc(brief) and not Path(brief).is_file():
+        raise typer.BadParameter(f"{brief!r} is neither a file nor a Google Doc URL")
+    state = asyncio.run(_run(brief, figma, preview))
     if out:
         payload = {
             "sitemap": state["sitemap"].model_dump(),
             "pages": [page.model_dump() for page in state["pages"].values()],
             "review": state["review"].model_dump(),
+            "style_guide": state["style_guide"].model_dump() if "style_guide" in state else None,
             "wp_pages": state.get("wp_pages", {}),
         }
         out.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
         console.print(f"Saved to {out}")
 
 
-async def _run(brief: Path, preview: bool) -> dict:
+async def _run(brief: str, figma: str | None, preview: bool) -> dict:
     settings = get_settings()
     console.print(f"[dim]LLM: {settings.llm_provider}:{settings.llm_model}[/dim]")
     async with AsyncExitStack() as stack:
@@ -59,12 +65,18 @@ async def _run(brief: Path, preview: bool) -> dict:
         if not preview:
             wp_tools = await stack.enter_async_context(wordpress_tools(settings))
         deps = Deps(
-            llm=get_chat_model(settings), max_revisions=settings.max_revisions, wp_tools=wp_tools
+            llm=get_chat_model(settings),
+            max_revisions=settings.max_revisions,
+            wp_tools=wp_tools,
+            figma=figma_client(settings),
+            gdocs=gdocs_client(settings),
         )
 
         graph = build_graph(checkpointer=InMemorySaver(serde=serializer()))
         config = {"configurable": {"thread_id": "cli"}}
-        graph_input: dict | Command = {"brief_source": str(brief)}
+        graph_input: dict | Command = {"brief_source": brief}
+        if figma:
+            graph_input["figma_url"] = figma
         state: dict = {}
         started = time.perf_counter()
         while True:
@@ -106,7 +118,12 @@ def _print_result(state: dict, elapsed: float) -> None:
     sitemap = state["sitemap"]
     wp_pages = state.get("wp_pages", {})
     console.rule(f"[bold]{sitemap.site_name}[/bold] — {sitemap.tagline}")
-    console.print(f"Audience: {sitemap.audience}\nTone: {sitemap.tone}\n")
+    console.print(f"Audience: {sitemap.audience}\nTone: {sitemap.tone}")
+    if guide := state.get("style_guide"):
+        colors = ", ".join(f"{c.name} {c.hex}" for c in guide.colors)
+        fonts = ", ".join(f"{t.name} {t.family} {t.weight}" for t in guide.typography)
+        console.print(f"Brand ({guide.source}): {colors} | {fonts}")
+    console.print()
 
     table = Table("Page", "Sections", "CTA", "WordPress")
     for spec in sitemap.pages:

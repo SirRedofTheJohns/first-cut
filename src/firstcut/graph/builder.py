@@ -9,6 +9,7 @@ def build_graph(checkpointer=None):
     """`checkpointer` is required for runs that reach WordPress: approval uses `interrupt`."""
     builder = StateGraph(SiteState, context_schema=Deps)
     builder.add_node("load_brief", nodes.load_brief)
+    builder.add_node("load_style_guide", nodes.load_style_guide)
     builder.add_node("plan_sitemap", nodes.plan_sitemap)
     builder.add_node("write_page", nodes.write_page)
     builder.add_node("review", nodes.review)
@@ -17,7 +18,8 @@ def build_graph(checkpointer=None):
     builder.add_node("finalize", finalize)
 
     builder.add_edge(START, "load_brief")
-    builder.add_edge("load_brief", "plan_sitemap")
+    builder.add_edge("load_brief", "load_style_guide")
+    builder.add_edge("load_style_guide", "plan_sitemap")
     # One parallel `write_page` run per planned page (map step).
     builder.add_conditional_edges("plan_sitemap", nodes.fan_out_writers, ["write_page"])
     # `review` runs once, after every writer in the superstep has finished (reduce step).

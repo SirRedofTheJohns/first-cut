@@ -92,7 +92,7 @@ def test_full_flow_webhook_stream_approve_publish(client, wp):
 
     events = read_events(client, run_id)
     nodes = [e["node"] for e in events if e["type"] == "node"]
-    assert nodes[:2] == ["load_brief", "plan_sitemap"]
+    assert nodes[:3] == ["load_brief", "load_style_guide", "plan_sitemap"]
     assert "publish_drafts" in nodes
     assert events[-2]["type"] == "awaiting_approval"
     assert events[-1] == {"type": "status", "status": "awaiting_approval"}

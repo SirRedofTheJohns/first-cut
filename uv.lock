@@ -440,6 +440,7 @@ source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
     { name = "fastapi" },
+    { name = "google-auth" },
     { name = "httpx" },
     { name = "langchain" },
     { name = "langchain-google-genai" },
@@ -451,6 +452,7 @@ dependencies = [
     { name = "mcp", extra = ["cli"] },
     { name = "pydantic" },
     { name = "pydantic-settings" },
+    { name = "requests" },
     { name = "rich" },
     { name = "sse-starlette" },
     { name = "structlog" },
@@ -479,6 +481,7 @@ dev = [
 requires-dist = [
     { name = "aiosqlite", specifier = ">=0.22.1" },
     { name = "fastapi", specifier = ">=0.156.2" },
+    { name = "google-auth", specifier = ">=2.62.0" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "langchain", specifier = ">=1.4.6" },
     { name = "langchain-anthropic", marker = "extra == 'anthropic'", specifier = ">=1.7.6" },
@@ -493,6 +496,7 @@ requires-dist = [
     { name = "mcp", extras = ["cli"], specifier = ">=1.30.0" },
     { name = "pydantic", specifier = ">=2.10" },
     { name = "pydantic-settings", specifier = ">=2.7" },
+    { name = "requests", specifier = ">=2.34.2" },
     { name = "rich", specifier = ">=15.0.0" },
     { name = "sse-starlette", specifier = ">=3.5.0" },
     { name = "structlog", specifier = ">=26.1.0" },

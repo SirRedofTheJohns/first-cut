@@ -1,0 +1,9 @@
+{
+  "name": "First Cut - Brand Styles Setup",
+  "id": "first-cut-brand-styles-setup",
+  "api": "1.0.0",
+  "main": "code.js",
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "networkAccess": { "allowedDomains": ["none"] }
+}

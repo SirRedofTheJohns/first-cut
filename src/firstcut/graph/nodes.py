@@ -8,6 +8,8 @@ from langgraph.types import Command, Send, interrupt
 
 from firstcut.graph.prompts import PLANNER_SYSTEM, REVIEWER_SYSTEM, WRITER_SYSTEM, site_context
 from firstcut.graph.state import Deps, SiteState, WriteTask
+from firstcut.integrations.figma import extract_style_guide, file_key
+from firstcut.integrations.gdocs import is_google_doc
 from firstcut.schemas import (
     MAX_PAGES,
     ApprovalDecision,
@@ -19,10 +21,25 @@ from firstcut.schemas import (
 from firstcut.structured import structured_call
 
 
-def load_brief(state: SiteState) -> SiteState:
+def load_brief(state: SiteState, runtime: Runtime[Deps]) -> SiteState:
     if state.get("brief"):
         return {}
-    return {"brief": Path(state["brief_source"]).read_text(encoding="utf-8")}
+    source = state["brief_source"]
+    if is_google_doc(source):
+        if runtime.context.gdocs is None:
+            raise ValueError("A Google Doc brief needs GOOGLE_APPLICATION_CREDENTIALS")
+        return {"brief": runtime.context.gdocs.read_markdown(source)}
+    return {"brief": Path(source).read_text(encoding="utf-8")}
+
+
+def load_style_guide(state: SiteState, runtime: Runtime[Deps]) -> SiteState:
+    """Optional: read brand colors and typography from the client's Figma file."""
+    if state.get("style_guide") or not state.get("figma_url"):
+        return {}
+    if runtime.context.figma is None:
+        raise ValueError("A Figma URL needs FIGMA_TOKEN")
+    figma_file = runtime.context.figma.get_file(file_key(state["figma_url"]))
+    return {"style_guide": extract_style_guide(figma_file)}
 
 
 def plan_sitemap(state: SiteState, runtime: Runtime[Deps]) -> SiteState:

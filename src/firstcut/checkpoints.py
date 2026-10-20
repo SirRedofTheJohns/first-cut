@@ -17,12 +17,15 @@ STATE_TYPES = [
     ("firstcut.schemas", name)
     for name in (
         "ApprovalDecision",
+        "ColorToken",
         "PageDraft",
         "PageIssue",
         "PageSection",
         "PageSpec",
         "ReviewResult",
         "SiteMap",
+        "StyleGuide",
+        "TypeToken",
     )
 ]
 

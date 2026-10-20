@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     # server over streamable HTTP, e.g. http://localhost:8765/mcp
     mcp_wordpress_url: str | None = None
 
+    # Figma (brand styles) and Google Docs (briefs)
+    figma_token: SecretStr | None = None
+    figma_cache_dir: str = ".cache/figma"
+    figma_cache_hours: float = 24
+    google_application_credentials: str | None = None
+
     # API
     webhook_secret: SecretStr | None = None
     webhook_tolerance_seconds: int = 300

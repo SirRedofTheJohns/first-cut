@@ -18,7 +18,7 @@ from langgraph.runtime import Runtime
 from firstcut.graph.prompts import PUBLISHER_SYSTEM
 from firstcut.graph.state import Deps, SiteState
 from firstcut.render import render_blocks
-from firstcut.schemas import PageDraft
+from firstcut.schemas import PageDraft, StyleGuide
 
 
 async def publish_drafts(state: SiteState, runtime: Runtime[Deps]) -> SiteState:
@@ -26,7 +26,7 @@ async def publish_drafts(state: SiteState, runtime: Runtime[Deps]) -> SiteState:
     drafts = state["pages"]
     existing = {page["slug"]: page for page in await call_tool(wp["list_pages"], {})}
     saved: dict[str, dict[str, Any]] = {}
-    save_draft = _save_draft_tool(wp, drafts, existing, saved)
+    save_draft = _save_draft_tool(wp, drafts, existing, saved, state.get("style_guide"))
 
     agent = create_agent(
         runtime.context.llm, [wp["list_pages"], save_draft], system_prompt=PUBLISHER_SYSTEM
@@ -64,6 +64,7 @@ def _save_draft_tool(
     drafts: dict[str, PageDraft],
     existing: dict[str, dict[str, Any]],
     saved: dict[str, dict[str, Any]],
+    style_guide: StyleGuide | None,
 ):
     @tool
     async def save_draft(slug: str, page_id: int | None = None) -> str:
@@ -84,7 +85,7 @@ def _save_draft_tool(
             return f"Skipped /{slug}: it is live; live pages only change through approval."
 
         draft = drafts[slug]
-        content = render_blocks(draft)
+        content = render_blocks(draft, style_guide)
         if known:  # also covers a forgotten page_id or a slug saved twice: no duplicates
             args = {"page_id": known["id"], "title": draft.title, "content": content}
             saved[slug] = await call_tool(wp["update_page"], args)

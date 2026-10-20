@@ -1,0 +1,556 @@
+{
+ "name": "First Cut – Masa Bakery Brand",
+ "version": "2412564567585211980",
+ "styles": {
+  "4:4": {
+   "key": "9b2e73f1181a5152335d6467dce5d9323f2eaa80",
+   "name": "Brand/Primary",
+   "styleType": "FILL",
+   "remote": false,
+   "description": ""
+  },
+  "4:6": {
+   "key": "51734dbd653d063f0659a08a065520d9e63828ca",
+   "name": "Brand/Secondary",
+   "styleType": "FILL",
+   "remote": false,
+   "description": ""
+  },
+  "4:8": {
+   "key": "476f74adf1127fb62379a102b3d97224964d200b",
+   "name": "Neutral/Text",
+   "styleType": "FILL",
+   "remote": false,
+   "description": ""
+  },
+  "4:10": {
+   "key": "d763a230cc7b8839a38c97774905436659d08f7c",
+   "name": "Neutral/Background",
+   "styleType": "FILL",
+   "remote": false,
+   "description": ""
+  },
+  "4:12": {
+   "key": "25e4db15888ccabe77f6e8c8ed7456e83a94105f",
+   "name": "Heading",
+   "styleType": "TEXT",
+   "remote": false,
+   "description": ""
+  },
+  "4:14": {
+   "key": "fb0ec2e0cfdc4141b881dcbe7d2801567ce6618f",
+   "name": "Body",
+   "styleType": "TEXT",
+   "remote": false,
+   "description": ""
+  }
+ },
+ "document": {
+  "id": "0:0",
+  "name": "Document",
+  "type": "DOCUMENT",
+  "scrollBehavior": "SCROLLS",
+  "children": [
+   {
+    "id": "0:1",
+    "name": "Page 1",
+    "type": "CANVAS",
+    "scrollBehavior": "SCROLLS",
+    "children": [
+     {
+      "id": "4:2",
+      "name": "Brand Style Guide",
+      "type": "FRAME",
+      "scrollBehavior": "SCROLLS",
+      "children": [
+       {
+        "id": "4:3",
+        "name": "Colors",
+        "type": "FRAME",
+        "scrollBehavior": "SCROLLS",
+        "children": [
+         {
+          "id": "4:5",
+          "name": "Brand/Primary",
+          "type": "RECTANGLE",
+          "scrollBehavior": "SCROLLS",
+          "blendMode": "PASS_THROUGH",
+          "fills": [
+           {
+            "blendMode": "NORMAL",
+            "type": "SOLID",
+            "color": {
+             "r": 0.7607843279838562,
+             "g": 0.2549019753932953,
+             "b": 0.0470588244497776,
+             "a": 1.0
+            }
+           }
+          ],
+          "strokes": [],
+          "strokeWeight": 1.0,
+          "strokeAlign": "INSIDE",
+          "styles": {
+           "fill": "4:4"
+          },
+          "cornerRadius": 12.0,
+          "cornerSmoothing": 0.0,
+          "absoluteBoundingBox": {
+           "x": 40.0,
+           "y": 40.0,
+           "width": 120.0,
+           "height": 120.0
+          },
+          "absoluteRenderBounds": {
+           "x": 40.0,
+           "y": 40.0,
+           "width": 120.0,
+           "height": 120.0
+          },
+          "constraints": {
+           "vertical": "TOP",
+           "horizontal": "LEFT"
+          },
+          "layoutAlign": "INHERIT",
+          "layoutGrow": 0.0,
+          "layoutSizingHorizontal": "FIXED",
+          "layoutSizingVertical": "FIXED",
+          "effects": [],
+          "interactions": [],
+          "complexStrokeProperties": {
+           "strokeType": "BASIC"
+          }
+         },
+         {
+          "id": "4:7",
+          "name": "Brand/Secondary",
+          "type": "RECTANGLE",
+          "scrollBehavior": "SCROLLS",
+          "blendMode": "PASS_THROUGH",
+          "fills": [
+           {
+            "blendMode": "NORMAL",
+            "type": "SOLID",
+            "color": {
+             "r": 0.9921568632125854,
+             "g": 0.9019607901573181,
+             "b": 0.5411764979362488,
+             "a": 1.0
+            }
+           }
+          ],
+          "strokes": [],
+          "strokeWeight": 1.0,
+          "strokeAlign": "INSIDE",
+          "styles": {
+           "fill": "4:6"
+          },
+          "cornerRadius": 12.0,
+          "cornerSmoothing": 0.0,
+          "absoluteBoundingBox": {
+           "x": 176.0,
+           "y": 40.0,
+           "width": 120.0,
+           "height": 120.0
+          },
+          "absoluteRenderBounds": {
+           "x": 176.0,
+           "y": 40.0,
+           "width": 120.0,
+           "height": 120.0
+          },
+          "constraints": {
+           "vertical": "TOP",
+           "horizontal": "LEFT"
+          },
+          "layoutAlign": "INHERIT",
+          "layoutGrow": 0.0,
+          "layoutSizingHorizontal": "FIXED",
+          "layoutSizingVertical": "FIXED",
+          "effects": [],
+          "interactions": [],
+          "complexStrokeProperties": {
+           "strokeType": "BASIC"
+          }
+         },
+         {
+          "id": "4:9",
+          "name": "Neutral/Text",
+          "type": "RECTANGLE",
+          "scrollBehavior": "SCROLLS",
+          "blendMode": "PASS_THROUGH",
+          "fills": [
+           {
+            "blendMode": "NORMAL",
+            "type": "SOLID",
+            "color": {
+             "r": 0.10980392247438431,
+             "g": 0.09803921729326248,
+             "b": 0.09019608050584793,
+             "a": 1.0
+            }
+           }
+          ],
+          "strokes": [],
+          "strokeWeight": 1.0,
+          "strokeAlign": "INSIDE",
+          "styles": {
+           "fill": "4:8"
+          },
+          "cornerRadius": 12.0,
+          "cornerSmoothing": 0.0,
+          "absoluteBoundingBox": {
+           "x": 312.0,
+           "y": 40.0,
+           "width": 120.0,
+           "height": 120.0
+          },
+          "absoluteRenderBounds": {
+           "x": 312.0,
+           "y": 40.0,
+           "width": 120.0,
+           "height": 120.0
+          },
+          "constraints": {
+           "vertical": "TOP",
+           "horizontal": "LEFT"
+          },
+          "layoutAlign": "INHERIT",
+          "layoutGrow": 0.0,
+          "layoutSizingHorizontal": "FIXED",
+          "layoutSizingVertical": "FIXED",
+          "effects": [],
+          "interactions": [],
+          "complexStrokeProperties": {
+           "strokeType": "BASIC"
+          }
+         },
+         {
+          "id": "4:11",
+          "name": "Neutral/Background",
+          "type": "RECTANGLE",
+          "scrollBehavior": "SCROLLS",
+          "blendMode": "PASS_THROUGH",
+          "fills": [
+           {
+            "blendMode": "NORMAL",
+            "type": "SOLID",
+            "color": {
+             "r": 1.0,
+             "g": 0.9843137264251709,
+             "b": 0.9607843160629272,
+             "a": 1.0
+            }
+           }
+          ],
+          "strokes": [],
+          "strokeWeight": 1.0,
+          "strokeAlign": "INSIDE",
+          "styles": {
+           "fill": "4:10"
+          },
+          "cornerRadius": 12.0,
+          "cornerSmoothing": 0.0,
+          "absoluteBoundingBox": {
+           "x": 448.0,
+           "y": 40.0,
+           "width": 120.0,
+           "height": 120.0
+          },
+          "absoluteRenderBounds": {
+           "x": 448.0,
+           "y": 40.0,
+           "width": 120.0,
+           "height": 120.0
+          },
+          "constraints": {
+           "vertical": "TOP",
+           "horizontal": "LEFT"
+          },
+          "layoutAlign": "INHERIT",
+          "layoutGrow": 0.0,
+          "layoutSizingHorizontal": "FIXED",
+          "layoutSizingVertical": "FIXED",
+          "effects": [],
+          "interactions": [],
+          "complexStrokeProperties": {
+           "strokeType": "BASIC"
+          }
+         }
+        ],
+        "blendMode": "PASS_THROUGH",
+        "clipsContent": true,
+        "background": [],
+        "fills": [],
+        "strokes": [],
+        "strokeWeight": 1.0,
+        "strokeAlign": "INSIDE",
+        "backgroundColor": {
+         "r": 0.0,
+         "g": 0.0,
+         "b": 0.0,
+         "a": 0.0
+        },
+        "layoutMode": "HORIZONTAL",
+        "strokesIncludedInLayout": true,
+        "itemSpacing": 16.0,
+        "layoutWrap": "NO_WRAP",
+        "absoluteBoundingBox": {
+         "x": 40.0,
+         "y": 40.0,
+         "width": 528.0,
+         "height": 120.0
+        },
+        "absoluteRenderBounds": {
+         "x": 40.0,
+         "y": 40.0,
+         "width": 528.0,
+         "height": 120.0
+        },
+        "constraints": {
+         "vertical": "TOP",
+         "horizontal": "LEFT"
+        },
+        "layoutAlign": "INHERIT",
+        "layoutGrow": 0.0,
+        "layoutSizingHorizontal": "HUG",
+        "layoutSizingVertical": "HUG",
+        "effects": [],
+        "interactions": [],
+        "complexStrokeProperties": {
+         "strokeType": "BASIC"
+        }
+       },
+       {
+        "id": "4:13",
+        "name": "Heading",
+        "type": "TEXT",
+        "scrollBehavior": "SCROLLS",
+        "blendMode": "PASS_THROUGH",
+        "fills": [
+         {
+          "blendMode": "NORMAL",
+          "type": "SOLID",
+          "color": {
+           "r": 0.0,
+           "g": 0.0,
+           "b": 0.0,
+           "a": 1.0
+          }
+         }
+        ],
+        "strokes": [],
+        "strokeWeight": 1.0,
+        "strokeAlign": "OUTSIDE",
+        "absoluteBoundingBox": {
+         "x": 40.0,
+         "y": 192.0,
+         "width": 634.0,
+         "height": 53.0
+        },
+        "absoluteRenderBounds": {
+         "x": 41.36000061035156,
+         "y": 203.67999267578125,
+         "width": 630.8353271484375,
+         "height": 38.84001159667969
+        },
+        "constraints": {
+         "vertical": "TOP",
+         "horizontal": "LEFT"
+        },
+        "layoutAlign": "INHERIT",
+        "layoutGrow": 0.0,
+        "layoutSizingHorizontal": "HUG",
+        "layoutSizingVertical": "HUG",
+        "characters": "Fresh sourdough, Monterrey roots",
+        "characterStyleOverrides": [],
+        "styleOverrideTable": {},
+        "lineTypes": [
+         "NONE"
+        ],
+        "lineIndentations": [
+         0
+        ],
+        "style": {
+         "fontFamily": "Playfair Display",
+         "fontPostScriptName": null,
+         "fontStyle": "Bold",
+         "fontWeight": 700,
+         "textAutoResize": "WIDTH_AND_HEIGHT",
+         "fontSize": 40.0,
+         "textAlignHorizontal": "LEFT",
+         "textAlignVertical": "TOP",
+         "letterSpacing": 0.0,
+         "lineHeightPx": 53.31999969482422,
+         "lineHeightPercent": 100.0,
+         "lineHeightUnit": "INTRINSIC_%"
+        },
+        "layoutVersion": 5,
+        "styles": {
+         "text": "4:12"
+        },
+        "effects": [],
+        "interactions": [],
+        "complexStrokeProperties": {
+         "strokeType": "BASIC"
+        }
+       },
+       {
+        "id": "4:15",
+        "name": "Body",
+        "type": "TEXT",
+        "scrollBehavior": "SCROLLS",
+        "blendMode": "PASS_THROUGH",
+        "fills": [
+         {
+          "blendMode": "NORMAL",
+          "type": "SOLID",
+          "color": {
+           "r": 0.0,
+           "g": 0.0,
+           "b": 0.0,
+           "a": 1.0
+          }
+         }
+        ],
+        "strokes": [],
+        "strokeWeight": 1.0,
+        "strokeAlign": "OUTSIDE",
+        "absoluteBoundingBox": {
+         "x": 40.0,
+         "y": 277.0,
+         "width": 388.0,
+         "height": 19.0
+        },
+        "absoluteRenderBounds": {
+         "x": 41.40909194946289,
+         "y": 280.0,
+         "width": 385.27130126953125,
+         "height": 15.272735595703125
+        },
+        "constraints": {
+         "vertical": "TOP",
+         "horizontal": "LEFT"
+        },
+        "layoutAlign": "INHERIT",
+        "layoutGrow": 0.0,
+        "layoutSizingHorizontal": "HUG",
+        "layoutSizingVertical": "HUG",
+        "characters": "Naturally leavened bread, baked daily in Austin, TX.",
+        "characterStyleOverrides": [],
+        "styleOverrideTable": {},
+        "lineTypes": [
+         "NONE"
+        ],
+        "lineIndentations": [
+         0
+        ],
+        "style": {
+         "fontFamily": "Inter",
+         "fontPostScriptName": null,
+         "fontStyle": "Regular",
+         "fontWeight": 400,
+         "textAutoResize": "WIDTH_AND_HEIGHT",
+         "fontSize": 16.0,
+         "textAlignHorizontal": "LEFT",
+         "textAlignVertical": "TOP",
+         "letterSpacing": 0.0,
+         "lineHeightPx": 19.363636016845703,
+         "lineHeightPercent": 100.0,
+         "lineHeightUnit": "INTRINSIC_%"
+        },
+        "layoutVersion": 5,
+        "styles": {
+         "text": "4:14"
+        },
+        "effects": [],
+        "interactions": [],
+        "complexStrokeProperties": {
+         "strokeType": "BASIC"
+        }
+       }
+      ],
+      "blendMode": "PASS_THROUGH",
+      "clipsContent": true,
+      "background": [
+       {
+        "blendMode": "NORMAL",
+        "type": "SOLID",
+        "color": {
+         "r": 1.0,
+         "g": 1.0,
+         "b": 1.0,
+         "a": 1.0
+        }
+       }
+      ],
+      "fills": [
+       {
+        "blendMode": "NORMAL",
+        "type": "SOLID",
+        "color": {
+         "r": 1.0,
+         "g": 1.0,
+         "b": 1.0,
+         "a": 1.0
+        }
+       }
+      ],
+      "strokes": [],
+      "strokeWeight": 1.0,
+      "strokeAlign": "INSIDE",
+      "backgroundColor": {
+       "r": 1.0,
+       "g": 1.0,
+       "b": 1.0,
+       "a": 1.0
+      },
+      "layoutMode": "VERTICAL",
+      "paddingLeft": 40.0,
+      "paddingRight": 40.0,
+      "paddingTop": 40.0,
+      "paddingBottom": 40.0,
+      "strokesIncludedInLayout": true,
+      "itemSpacing": 32.0,
+      "layoutWrap": "NO_WRAP",
+      "absoluteBoundingBox": {
+       "x": 0.0,
+       "y": 0.0,
+       "width": 714.0,
+       "height": 336.0
+      },
+      "absoluteRenderBounds": {
+       "x": 0.0,
+       "y": 0.0,
+       "width": 714.0,
+       "height": 336.0
+      },
+      "constraints": {
+       "vertical": "TOP",
+       "horizontal": "LEFT"
+      },
+      "layoutSizingHorizontal": "HUG",
+      "layoutSizingVertical": "HUG",
+      "effects": [],
+      "interactions": [],
+      "complexStrokeProperties": {
+       "strokeType": "BASIC"
+      }
+     }
+    ],
+    "backgroundColor": {
+     "r": 0.11764705926179886,
+     "g": 0.11764705926179886,
+     "b": 0.11764705926179886,
+     "a": 1.0
+    },
+    "prototypeStartNodeID": null,
+    "flowStartingPoints": [],
+    "prototypeDevice": {
+     "type": "NONE",
+     "rotation": "NONE"
+    }
+   }
+  ]
+ }
+}

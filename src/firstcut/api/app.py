@@ -13,7 +13,7 @@ import structlog
 from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
 from langgraph.checkpoint.base import BaseCheckpointSaver
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, model_validator
 from pydantic_core import to_jsonable_python
 from sse_starlette import EventSourceResponse, ServerSentEvent
 
@@ -28,6 +28,7 @@ from firstcut.api.security import (
 from firstcut.checkpoints import sqlite_checkpointer
 from firstcut.config import Settings, get_settings
 from firstcut.graph import Deps, build_graph
+from firstcut.integrations.factory import figma_client, gdocs_client
 from firstcut.llm import get_chat_model
 from firstcut.logs import configure_logging
 from firstcut.mcp_client import wordpress_tools
@@ -38,7 +39,19 @@ CheckpointerFactory = Callable[[], AbstractAsyncContextManager[BaseCheckpointSav
 
 
 class BriefWebhook(BaseModel):
-    brief: str = Field(min_length=20, description="The client brief, as markdown or plain text.")
+    brief: str | None = Field(None, min_length=20, description="The brief as markdown/text.")
+    gdoc_url: str | None = Field(None, description="Or: a Google Doc with the brief.")
+    figma_url: str | None = Field(None, description="Optional Figma file with brand styles.")
+
+    @model_validator(mode="after")
+    def _one_brief_source(self) -> "BriefWebhook":
+        if bool(self.brief) == bool(self.gdoc_url):
+            raise ValueError("send exactly one of `brief` or `gdoc_url`")
+        return self
+
+    def graph_input(self) -> dict:
+        graph_input = {"brief": self.brief} if self.brief else {"brief_source": self.gdoc_url}
+        return graph_input | ({"figma_url": self.figma_url} if self.figma_url else {})
 
 
 def create_app(
@@ -101,7 +114,7 @@ def create_app(
         service = runs(request)
         if run_id in service.runs or (await service.snapshot(run_id)).values:
             return JSONResponse(_links(run_id) | {"duplicate": True}, status_code=200)
-        await service.start(run_id, {"brief": payload.brief})
+        await service.start(run_id, payload.graph_input())
         log.info("run_started", run_id=run_id)
         return _links(run_id)
 
@@ -170,7 +183,11 @@ def _links(run_id: str) -> dict:
 async def _production_deps(settings: Settings) -> AsyncIterator[Deps]:
     async with wordpress_tools(settings) as tools:
         yield Deps(
-            llm=get_chat_model(settings), max_revisions=settings.max_revisions, wp_tools=tools
+            llm=get_chat_model(settings),
+            max_revisions=settings.max_revisions,
+            wp_tools=tools,
+            figma=figma_client(settings),
+            gdocs=gdocs_client(settings),
         )
 
 

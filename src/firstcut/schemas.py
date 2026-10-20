@@ -133,3 +133,30 @@ class ApprovalDecision(BaseModel):
         default_factory=dict,
         description="When not approved: requested change per page slug. Empty = reject outright.",
     )
+
+
+class ColorToken(BaseModel):
+    name: str
+    hex: str
+
+
+class TypeToken(BaseModel):
+    name: str
+    family: str
+    weight: int
+    size_px: float
+
+
+class StyleGuide(BaseModel):
+    """Brand colors and typography, read from the client's Figma styles."""
+
+    source: str
+    colors: list[ColorToken]
+    typography: list[TypeToken]
+
+    def color(self, *hints: str) -> ColorToken | None:
+        """First color whose name contains any hint (e.g. 'primary'), case-insensitive."""
+        return next((c for c in self.colors if any(h in c.name.lower() for h in hints)), None)
+
+    def font(self, *hints: str) -> TypeToken | None:
+        return next((t for t in self.typography if any(h in t.name.lower() for h in hints)), None)

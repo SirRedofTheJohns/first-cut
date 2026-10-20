@@ -88,6 +88,8 @@ services:
       - "host.docker.internal:host-gateway"  # makes the name resolve on Linux too
     volumes:
       - ./data:/app/data
+      - ./.cache:/app/.cache          # Figma responses: the free plan allows ~20 reads/month
+      - ./secrets:/app/secrets:ro     # Google service account key
 
 volumes:
   db_data:
