@@ -13,3 +13,15 @@ docker compose logs wpcli     # copy WP_APP_PASSWORD into .env
 uv sync
 uv run pytest
 ```
+
+## WordPress MCP server
+
+```bash
+uv run python -m mcp_server                                # stdio
+docker compose up -d mcp                                   # streamable HTTP on :8765/mcp
+npx @modelcontextprotocol/inspector uv run python -m mcp_server   # debug UI
+```
+
+Claude Desktop: copy `mcp_server/claude_desktop_config.example.json` into
+`%APPDATA%\Claude\claude_desktop_config.json` (macOS: `~/Library/Application Support/Claude/`)
+and set the repo path. Credentials are read from the repo's `.env`.

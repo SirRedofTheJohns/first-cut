@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     wp_user: str = "admin"
     wp_app_password: SecretStr | None = None
 
+    # MCP server for WordPress tools. Empty: spawn it over stdio. Set it to use a running
+    # server over streamable HTTP, e.g. http://localhost:8765/mcp
+    mcp_wordpress_url: str | None = None
+
 
 @lru_cache
 def get_settings() -> Settings:

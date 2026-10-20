@@ -1,1 +1,1 @@
-"""MCP server exposing WordPress tools (implemented in phase 3)."""
+"""MCP server exposing WordPress page tools (see `mcp_server.server`)."""

@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "first-cut-wordpress": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "C:\\path\\to\\first-cut",
+        "run",
+        "python",
+        "-m",
+        "mcp_server"
+      ]
+    }
+  }
+}

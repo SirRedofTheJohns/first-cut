@@ -11,7 +11,7 @@ from typing import Any
 
 from langchain.agents import create_agent
 from langchain_core.messages import HumanMessage
-from langchain_core.tools import tool
+from langchain_core.tools import BaseTool, ToolException, tool
 from langgraph.errors import GraphRecursionError
 from langgraph.runtime import Runtime
 
@@ -19,13 +19,12 @@ from firstcut.graph.prompts import PUBLISHER_SYSTEM
 from firstcut.graph.state import Deps, SiteState
 from firstcut.render import render_blocks
 from firstcut.schemas import PageDraft
-from firstcut.tools import WordPressTools, tool_data
 
 
 async def publish_drafts(state: SiteState, runtime: Runtime[Deps]) -> SiteState:
     wp = runtime.context.wp_tools
     drafts = state["pages"]
-    existing = {page["slug"]: page for page in tool_data(await wp["list_pages"].ainvoke({}))}
+    existing = {page["slug"]: page for page in await call_tool(wp["list_pages"], {})}
     saved: dict[str, dict[str, Any]] = {}
     save_draft = _save_draft_tool(wp, drafts, existing, saved)
 
@@ -42,14 +41,14 @@ async def publish_drafts(state: SiteState, runtime: Runtime[Deps]) -> SiteState:
     # Verification: every draft must exist in WordPress, whatever the agent did.
     by_agent = set(saved)
     for slug in drafts.keys() - saved.keys():
-        await save_draft.ainvoke({"slug": slug})
+        await call_tool(save_draft, {"slug": slug})
     for slug, page in saved.items():
         page["saved_by"] = "agent" if slug in by_agent else "verification"
     return {"wp_pages": saved}
 
 
 def _save_draft_tool(
-    wp: WordPressTools,
+    wp: dict[str, BaseTool],
     drafts: dict[str, PageDraft],
     existing: dict[str, dict[str, Any]],
     saved: dict[str, dict[str, Any]],
@@ -75,14 +74,27 @@ def _save_draft_tool(
         draft = drafts[slug]
         content = render_blocks(draft)
         if known:  # also covers a forgotten page_id or a slug saved twice: no duplicates
-            result = await wp["update_page"].ainvoke(
-                {"page_id": known["id"], "title": draft.title, "content": content}
-            )
+            args = {"page_id": known["id"], "title": draft.title, "content": content}
+            saved[slug] = await call_tool(wp["update_page"], args)
         else:
-            result = await wp["create_page"].ainvoke(
-                {"title": draft.title, "content": content, "slug": slug, "status": "draft"}
-            )
-        saved[slug] = tool_data(result)
+            args = {"title": draft.title, "content": content, "slug": slug, "status": "draft"}
+            saved[slug] = await call_tool(wp["create_page"], args)
         return json.dumps(saved[slug])
 
+    # A WordPress failure goes back to the model as an error message instead of crashing.
+    save_draft.handle_tool_error = True
     return save_draft
+
+
+async def call_tool(tool: BaseTool, args: dict[str, Any]) -> Any:
+    """Call a tool from code (not from the LLM) and return its JSON result as data.
+
+    Errors are returned as messages so an LLM can react to them (MCP adapters do this by
+    default); here, code is the caller, so an error becomes an exception again.
+    """
+    message = await tool.ainvoke(
+        {"name": tool.name, "args": args, "id": "direct", "type": "tool_call"}
+    )
+    if message.status == "error":
+        raise ToolException(f"{tool.name} failed: {message.text}")
+    return json.loads(message.text)

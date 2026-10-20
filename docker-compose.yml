@@ -57,6 +57,19 @@ services:
     entrypoint: ["sh", "/wp_setup.sh"]
     restart: "no"
 
+  # WordPress MCP server over streamable HTTP: http://localhost:8765/mcp
+  mcp:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - wordpress
+    ports:
+      - "8765:8765"
+    environment:
+      WP_URL: http://wordpress  # container-to-container; links still use localhost:8080
+      WP_USER: ${WP_USER:-admin}
+      WP_APP_PASSWORD: ${WP_APP_PASSWORD:-}
+
 volumes:
   db_data:
   wp_data:

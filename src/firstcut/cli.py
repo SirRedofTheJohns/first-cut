@@ -11,9 +11,8 @@ from rich.table import Table
 
 from firstcut.config import get_settings
 from firstcut.graph import Deps, build_graph
-from firstcut.integrations.wordpress import WordPressClient
 from firstcut.llm import get_chat_model
-from firstcut.tools import wordpress_tools
+from firstcut.mcp_client import wordpress_tools
 
 app = typer.Typer(help="First Cut: brief in, reviewed site draft out.", no_args_is_help=True)
 console = Console()
@@ -55,8 +54,7 @@ async def _run(brief: Path, preview: bool) -> dict:
     async with AsyncExitStack() as stack:
         wp_tools = None
         if not preview:
-            client = await stack.enter_async_context(WordPressClient.from_settings(settings))
-            wp_tools = wordpress_tools(client)
+            wp_tools = await stack.enter_async_context(wordpress_tools(settings))
         deps = Deps(
             llm=get_chat_model(settings), max_revisions=settings.max_revisions, wp_tools=wp_tools
         )

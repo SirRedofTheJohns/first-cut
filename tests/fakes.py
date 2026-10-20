@@ -7,10 +7,13 @@ out in a nondeterministic order. These fakes decide what to answer from the prom
 import json
 import threading
 from collections.abc import Callable
+from contextlib import asynccontextmanager
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
+from langchain_mcp_adapters.tools import load_mcp_tools
+from mcp.shared.memory import create_connected_server_and_client_session
 from pydantic import PrivateAttr
 
 from firstcut.graph.prompts import (
@@ -19,6 +22,8 @@ from firstcut.graph.prompts import (
     REVIEWER_SYSTEM,
     WRITER_SYSTEM,
 )
+from firstcut.integrations.wordpress import WordPressError
+from mcp_server.server import create_server
 
 
 class ScriptedChatModel(BaseChatModel):
@@ -124,7 +129,7 @@ def diligent_publisher(messages: list[BaseMessage]) -> AIMessage:
     if isinstance(last, HumanMessage):
         return AIMessage(content="", tool_calls=[_call("list_pages", {}, 0)])
     if isinstance(last, ToolMessage) and last.name == "list_pages":
-        existing = {page["slug"]: page["id"] for page in json.loads(last.content)}
+        existing = {page["slug"]: page["id"] for page in json.loads(last.text)}
         slugs = messages[1].content.split(": ", 1)[1].split(", ")
         calls = [
             _call("save_draft", {"slug": slug, "page_id": existing.get(slug)}, i)
@@ -146,10 +151,18 @@ class FakeWordPressClient:
         self.pages = {page["id"]: dict(page) for page in pages or []}
         self.created: list[int] = []
 
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *exc_info):
+        pass
+
     async def list_pages(self, search=None):
         return [_without_content(page) for page in self.pages.values()]
 
     async def get_page(self, page_id):
+        if page_id not in self.pages:
+            raise WordPressError(f"GET pages/{page_id} -> 404: Invalid post ID.")
         return dict(self.pages[page_id])
 
     async def create_page(self, title, content, slug=None, status="draft"):
@@ -175,3 +188,12 @@ class FakeWordPressClient:
 
 def _without_content(page: dict) -> dict:
     return {key: value for key, value in page.items() if key != "content"}
+
+
+@asynccontextmanager
+async def mcp_wordpress_tools(wp: FakeWordPressClient):
+    """The agent's tools exactly as in production (MCP server -> MCP protocol ->
+    langchain-mcp-adapters), but over in-memory streams instead of stdio or HTTP."""
+    server = create_server(client_factory=lambda: wp)
+    async with create_connected_server_and_client_session(server) as session:
+        yield {tool.name: tool for tool in await load_mcp_tools(session)}

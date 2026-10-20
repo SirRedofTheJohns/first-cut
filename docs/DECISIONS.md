@@ -82,3 +82,23 @@ Short records of the decisions that shape this project: what was chosen, why, an
 - **Gutenberg block markup** (`<!-- wp:paragraph -->…`) rather than raw HTML, so editors can keep working on the pages in the block editor. All model text is HTML-escaped (defense in depth on top of the no-HTML validator).
 - **Tools return JSON strings**, like MCP tool results. A tool that returned a Python list put a list into the `ToolMessage`, which chat providers expect to be text. Matching MCP's contract means the backend swap in phase 3 doesn't change what the LLM sees.
 - **`status=any&context=edit`** when listing, so drafts (and raw titles) are visible to the agent.
+
+## D014 — Own MCP server; the agent reaches WordPress only through MCP
+**Decision:** `mcp_server` (official MCP Python SDK, `FastMCP`) exposes `list_pages`, `get_page`, `create_page` and `update_page`. The agent loads those tools with `langchain-mcp-adapters` and never calls the REST API itself. The direct-REST LangChain tools from phase 2 were deleted, so there is a single path.
+**Why:** It shows both sides of MCP. The same server works with the agent, Claude Desktop and MCP Inspector, and WordPress credentials live only in the server process.
+**Details worth knowing:**
+- **Transports:** stdio by default (the agent spawns `python -m mcp_server`; this is also what Claude Desktop and Inspector use), and streamable HTTP when `MCP_WORDPRESS_URL` is set (the `mcp` Docker service; the API in phase 5 uses this). HTTP also avoids a Windows issue: uvicorn's `--reload` uses a selector event loop that cannot spawn asyncio subprocesses.
+- **One session per run** (`client.session(...)` + `load_mcp_tools`). `client.get_tools()` opens a new session for every tool call, which over stdio means spawning a new server process each time.
+- **The stdio child gets a minimal environment.** The MCP SDK does not forward your environment variables, so the WordPress settings are passed explicitly. For Claude Desktop, `uv --directory <repo> run` makes the server read the repo's `.env`, so no password goes into the Claude config.
+- **Lifespan-managed HTTP client:** one `httpx` connection pool for the server's lifetime, reached from tools via `ctx.request_context.lifespan_context`. `create_server(client_factory=...)` makes it injectable for tests.
+- **Tool annotations:** `readOnlyHint` on reads and `destructiveHint` on `update_page` (it can make a page live), so clients like Claude Desktop can ask for confirmation.
+- **Results are JSON text** (`structured_output=False`). FastMCP turns a returned *list* into one content block per item, which would break JSON parsing of `list_pages`.
+
+## D015 — Tool errors: text for the LLM, exceptions for code
+**Decision:** MCP tool errors reach the LLM as an error `ToolMessage` (the adapter's default, `handle_tool_errors=True`), so the agent can react. When *code* calls a tool (`call_tool()`), it invokes it with a `ToolCall` and turns `status == "error"` into a `ToolException`.
+**Why (found by testing):** With the default settings, `tool.ainvoke(args)` doesn't raise on a WordPress 404; it returns `"Error executing tool …"` as content, which would otherwise surface as a confusing `JSONDecodeError`. Checking `ToolMessage.status` avoids parsing error strings.
+
+## D016 — Tests exercise the real MCP protocol, in memory
+**Decision:** The graph tests build the real MCP server around an in-memory fake WordPress, connect over `mcp.shared.memory.create_connected_server_and_client_session`, and load tools with `load_mcp_tools`, exactly as in production but with no network or subprocess.
+**Why:** The tests caught two real contract details that unit tests with plain fake tools would have missed: adapter results are lists of content blocks, and errors are returned instead of raised.
+**Verified live:** the agent over stdio and over HTTP (Docker → WordPress), container-to-container access by service name (`http://mcp:8765/mcp`, so FastMCP's DNS-rebinding protection doesn't block it), and MCP Inspector CLI (`tools/list` shows the 4 tools with annotations; `tools/call` hits real WordPress).
