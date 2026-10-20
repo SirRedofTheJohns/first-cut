@@ -3,11 +3,29 @@ name = "first-cut"
 version = "0.1.0"
 description = "Agentic workflow that turns a client brief into a reviewed WordPress site draft."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = { text = "MIT" }
 dependencies = [
+    "langchain>=1.4.6",
+    "langchain-google-genai>=4.4.2",
+    "langchain-groq>=1.1.3",
+    "langchain-ollama>=1.1.0",
+    "langgraph>=1.2.16",
     "pydantic>=2.10",
     "pydantic-settings>=2.7",
+    "rich>=15.0.0",
+    "typer>=0.27.3",
+]
+
+[project.optional-dependencies]
+anthropic = [
+    "langchain-anthropic>=1.7.6",
+]
+openai = [
+    "langchain-openai>=1.7.2",
+]
+huggingface = [
+    "langchain-huggingface>=1.2.3",
 ]
 
 [dependency-groups]
@@ -25,12 +43,17 @@ packages = ["src/firstcut", "mcp_server"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+# Line length is enforced by `ruff format`; long string literals are left as-is.
+ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = ["integration: needs live services (WordPress, LLM); skipped by default"]
 addopts = "-m 'not integration'"
+
+[project.scripts]
+firstcut = "firstcut.cli:app"

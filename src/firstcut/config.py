@@ -11,8 +11,14 @@ class Settings(BaseSettings):
 
     # LLM
     llm_provider: str = "ollama"
-    llm_model: str = "qwen3.5:9b"
+    llm_model: str = "hf.co/Qwen/Qwen3-8B-GGUF:Q8_0"
     llm_temperature: float = 0.3
+    # Client-side throttle for rate-limited free tiers (Groq, Gemini). 0 disables it.
+    llm_requests_per_second: float = 0
+    ollama_base_url: str = "http://localhost:11434"
+
+    # Agent
+    max_revisions: int = 2
 
     # WordPress (local Docker instance by default)
     wp_url: str = "http://localhost:8080"

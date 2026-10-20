@@ -34,3 +34,34 @@ Short records of the decisions that shape this project: what was chosen, why, an
 ## D006 — Ruff for linting and formatting; integration tests opt-in
 **Decision:** Ruff handles both linting and formatting. Pytest skips tests marked `integration` by default (`-m 'not integration'`).
 **Why:** One fast tool instead of flake8 + isort + black. CI has no WordPress or LLM, so unit tests use fakes, and the integration tests run locally against Docker.
+
+## D007 — Graph shape: plan → parallel writers (map) → reviewer (reduce) → bounded rewrite loop
+**Decision:** `plan_sitemap` fans out one `write_page` task per page with LangGraph's `Send` API. A reducer (`merge_pages`) merges each writer's page into `state["pages"]`, and `review` runs once all writers in the superstep are done. When the reviewer flags issues, only the flagged pages are re-sent to `write_page`, together with the previous draft and the feedback. The loop is capped at `MAX_REVISIONS` (default 2).
+**Alternatives:** One LLM call that writes the whole site (bigger output, so worse quality on small models and a single point of failure), or a sequential loop over pages (slower).
+**Why:** Pages are independent, so writing them in parallel cuts latency, and each call gets a small, focused prompt, which matters for 8B models. The cap keeps the cost of a strict reviewer predictable; anything still open goes to the human approval step.
+**Guardrail:** Issues the reviewer reports for slugs that don't exist get dropped. Small models sometimes invent pages.
+
+## D008 — Dependencies injected through LangGraph's runtime context
+**Decision:** The LLM (and later, the tools) reach nodes through `context_schema=Deps` / `Runtime[Deps]`, not through module globals.
+**Why:** Tests pass a fake LLM to `graph.invoke(..., context=Deps(llm=fake))` without monkeypatching, and the API can choose a model per request. The context is not checkpointed, so a non-serializable client object is fine there.
+
+## D009 — Structured output with a validate-and-retry loop and a prompt-based fallback
+**Decision:** `structured_call()` uses the provider's native structured output (`with_structured_output(..., include_raw=True)`) when it exists, and otherwise injects the JSON schema into the prompt and parses the reply. Either way, a Pydantic validation error goes back to the model as a new message, for up to 3 attempts.
+**Why:** It is the same code path for Ollama, Groq, Gemini, and for raw `transformers` models on the ZeroGPU Space, which have no native tool calling. `include_raw=True` returns parsing errors instead of raising them, so they can be fed back. The unit-test fakes have no native support, so the fallback path is covered by tests too.
+
+## D010 — Semantic limits in validators, not in JSON-schema constraints
+**Decision:** Length limits (CTA ≤ 40 chars, meta description) are `field_validator`s, not `Field(max_length=...)`.
+**Why (found by testing):** Ollama compiles the JSON schema into a decoding grammar. With `maxLength: 40` the model didn't write a shorter CTA; the grammar cut it mid-sentence ("Complete the form below to start the off"). A validator is not part of the schema, so the model writes freely, and if the result is too long it gets the error message and rewrites the CTA properly.
+
+## D011 — Default local model: Qwen3-8B (Q8_0 GGUF) pulled from the Hugging Face Hub
+**Decision:** `LLM_MODEL=hf.co/Qwen/Qwen3-8B-GGUF:Q8_0`, with thinking disabled (`reasoning=False`).
+**Evidence:** `scripts/smoke_models.py`, 3 reps per check, RTX 4080 Super 16 GB:
+
+| Model | Structured SiteMap (1st try) | 1 tool call | 3 parallel tool calls |
+|---|---|---|---|
+| `qwen3.5:9b` | 3/3 · 16.3s | 3/3 · 1.1s | 3/3 · 2.5s |
+| `hf.co/Qwen/Qwen3-8B-GGUF:Q8_0` | 3/3 · 7.2s | 3/3 · 3.9s | 3/3 · 7.5s |
+| `gemma4:12b` | 3/3 · 9.2s | 3/3 · 0.9s | **0/3** (one call per turn) |
+
+**Why Qwen3-8B over qwen3.5:9b (both pass everything):** It is the same model the Hugging Face ZeroGPU demo runs with `transformers`, so development and the public demo behave alike, and it comes straight from the HF Hub. `qwen3.5:9b` is a drop-in alternative (`LLM_MODEL=qwen3.5:9b`) with faster tool calls.
+**End-to-end:** All 3 sample briefs produce a complete, approved site in ~95–140 s locally. Hallucination checks pass: Ledgerly's copy says SOC 2 is "in progress" (the brief forbids claiming certification), and Northline lists all four insurers and the $140 cash price.
