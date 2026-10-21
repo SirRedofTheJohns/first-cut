@@ -122,7 +122,7 @@ uv run python -m mcp_server                                       # stdio
 npx @modelcontextprotocol/inspector uv run python -m mcp_server   # debug UI
 ```
 
-For Claude Desktop, copy `mcp_server/claude_desktop_config.example.json` into `claude_desktop_config.json` and set the repo path. Credentials are read from the repo's `.env`, not from the Claude config.
+For Claude Desktop, add the `mcpServers` entry from `mcp_server/claude_desktop_config.example.json` to `claude_desktop_config.json` (open it with **Settings → Developer → Edit Config**), set the repo path, and fully restart Claude. Credentials are read from the repo's `.env`, not from the Claude config. On Windows, use the full path to `uv.exe`, because GUI apps may not see your shell's `PATH`. Microsoft Store installs keep the file under `%LOCALAPPDATA%\Claude-Data\<package>\`, not `%APPDATA%\Claude\`.
 
 ## Switching LLM providers
 
