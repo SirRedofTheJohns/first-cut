@@ -1,10 +1,12 @@
 import asyncio
 import json
+import sys
 import time
 from contextlib import AsyncExitStack
 from pathlib import Path
 from typing import Annotated
 
+import httpx
 import typer
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.types import Command
@@ -26,6 +28,15 @@ console = Console()
 @app.callback()
 def main() -> None:
     """Keeps `run` as an explicit subcommand (more commands arrive in later phases)."""
+    _use_utf8_output()
+
+
+def _use_utf8_output() -> None:
+    """Windows gives piped output a legacy encoding (cp1252) that cannot encode "✓", so
+    printing it crashed with UnicodeEncodeError. Write UTF-8 everywhere instead."""
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
 
 
 @app.command()
@@ -44,7 +55,11 @@ def run(
     """Plan and write a site from a brief, then save it to WordPress as drafts."""
     if not is_google_doc(brief) and not Path(brief).is_file():
         raise typer.BadParameter(f"{brief!r} is neither a file nor a Google Doc URL")
-    state = asyncio.run(_run(brief, figma, preview))
+    try:
+        state = asyncio.run(_run(brief, figma, preview))
+    except httpx.ConnectError as exc:
+        typer.echo(_connection_help(), err=True)
+        raise typer.Exit(code=1) from exc
     if out:
         payload = {
             "sitemap": state["sitemap"].model_dump(),
@@ -55,6 +70,20 @@ def run(
         }
         out.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
         console.print(f"Saved to {out}")
+
+
+def _connection_help() -> str:
+    settings = get_settings()
+    if settings.llm_provider == "ollama":
+        return (
+            f"Error: could not connect to Ollama at {settings.ollama_base_url}. Start it "
+            "(`ollama serve`) or set LLM_PROVIDER and LLM_MODEL in .env to a cloud provider "
+            "(see .env.example)."
+        )
+    return (
+        f"Error: could not connect to a service (LLM_PROVIDER={settings.llm_provider}). "
+        "Check your network and the URLs in .env (see .env.example)."
+    )
 
 
 async def _run(brief: str, figma: str | None, preview: bool) -> dict:

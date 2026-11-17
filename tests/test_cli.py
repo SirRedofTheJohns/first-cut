@@ -1,5 +1,6 @@
 import json
 
+import httpx
 from typer.testing import CliRunner
 
 from firstcut import cli
@@ -38,3 +39,19 @@ def test_run_asks_for_approval_and_publishes(tmp_path, monkeypatch):
     assert "Publish these pages?" in result.output
     assert "published" in result.output
     assert all(page["status"] == "publish" for page in wp.pages.values())
+
+
+def test_run_explains_how_to_fix_an_unreachable_llm(tmp_path, monkeypatch):
+    def refuse(_messages):
+        raise httpx.ConnectError("[WinError 10061] connection refused")
+
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.setattr(cli, "get_chat_model", lambda _settings: ScriptedChatModel(respond=refuse))
+    brief = tmp_path / "brief.md"
+    brief.write_text("Masa Bakery brief", encoding="utf-8")
+
+    result = CliRunner().invoke(cli.app, ["run", str(brief), "--preview"])
+
+    assert result.exit_code == 1
+    assert "could not connect to Ollama" in result.output
+    assert "LLM_PROVIDER" in result.output
