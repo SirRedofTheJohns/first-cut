@@ -2,7 +2,14 @@
 
 **Brief in, reviewed WordPress draft out.** First Cut is an agentic workflow for web agencies. It reads a client brief (markdown or a Google Doc) and the client's brand (Figma styles), plans a sitemap, writes every page, reviews its own copy, and saves the pages to WordPress as drafts through its own MCP server. Nothing goes live until a human approves.
 
-**[Live demo on Hugging Face Spaces](https://huggingface.co/spaces/SirRedOfTheJohns/first-cut)** (preview mode, no WordPress) · **[Technical decisions](docs/DECISIONS.md)**
+## Try it in 30 seconds
+
+Open the **[live demo on Hugging Face Spaces](https://huggingface.co/spaces/SirRedOfTheJohns/first-cut)**, pick a sample brief and click **Generate site draft**. Nothing to install. The demo runs in preview mode (no WordPress); the full local setup is under [Quick start](#quick-start).
+
+<!-- TODO: record docs/demo.gif, then uncomment the next line -->
+<!-- ![First Cut demo: brief in, site draft out](docs/demo.gif) -->
+
+**[Technical decisions](docs/DECISIONS.md)**
 
 ## The problem
 
