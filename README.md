@@ -33,7 +33,7 @@ flowchart LR
         G["StateGraph<br/>+ SQLite checkpointer"]
     end
     subgraph MCP["MCP server (FastMCP)"]
-        T["list / get / create / update page"]
+        T["list / get / save draft /<br/>create / update page"]
     end
     LLM["LLM layer (env-switchable)<br/>Ollama · Gemini · Groq · HF · Anthropic · OpenAI"]
     WP[("WordPress<br/>REST API")]
@@ -124,8 +124,23 @@ Webhook payload: `{"brief": "..."}` or `{"gdoc_url": "..."}`, plus an optional `
 
 ### MCP server
 
+The server works on its own with any MCP client (Claude Code, Claude Desktop, Cursor). No clone is needed. `uvx` installs it on first run, which takes about 7 seconds cold, and caches it after that. Credentials go in the client's config:
+
+```bash
+claude mcp add first-cut-wordpress --scope user \
+  -e WP_URL=https://your-site.com -e WP_USER=you -e WP_APP_PASSWORD="xxxx xxxx xxxx xxxx xxxx xxxx" \
+  -- uvx --from git+https://github.com/SirRedofTheJohns/first-cut@v0.2.0 first-cut-mcp
+```
+
+For other clients, use the same command and `env` in their MCP JSON config. To test the login without an agent, run the same `uvx` command with `--check` added. It prints `OK: logged in to ...` or tells you which setting to fix.
+
+Tools: `list_pages` and `get_page` are read-only. `save_draft` takes plain-text sections plus optional brand colors and fonts. It renders editable Gutenberg blocks, updates the draft with the same slug instead of duplicating it, and never touches live pages. `create_page` and `update_page` give raw access.
+
+From a clone:
+
 ```bash
 uv run python -m mcp_server                                       # stdio
+uv run python -m mcp_server --check                               # test WP_URL / WP_USER / WP_APP_PASSWORD
 npx @modelcontextprotocol/inspector uv run python -m mcp_server   # debug UI
 ```
 

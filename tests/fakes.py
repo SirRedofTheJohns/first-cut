@@ -157,8 +157,9 @@ class FakeWordPressClient:
     async def __aexit__(self, *exc_info):
         pass
 
-    async def list_pages(self, search=None):
-        return [_without_content(page) for page in self.pages.values()]
+    async def list_pages(self, search=None, slug=None):
+        pages = [page for page in self.pages.values() if slug is None or page["slug"] == slug]
+        return [_without_content(page) for page in pages]
 
     async def get_page(self, page_id):
         if page_id not in self.pages:

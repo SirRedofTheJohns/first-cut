@@ -56,6 +56,8 @@ class SiteMap(BaseModel):
 
 _HTML_TAG = re.compile(r"</?[a-zA-Z][^>]*>")
 _PLACEHOLDER = re.compile(r"\[[^\]]{2,}\]|lorem ipsum", re.IGNORECASE)
+_HEX = re.compile(r"#[0-9A-Fa-f]{6}")
+_SHORT_HEX = re.compile(r"#[0-9A-Fa-f]{3}")
 
 
 class PageSection(BaseModel):
@@ -139,14 +141,27 @@ class ApprovalDecision(BaseModel):
 
 class ColorToken(BaseModel):
     name: str
-    hex: str
+    hex: str = Field(description="CSS hex color, e.g. '#C2410C'.")
+
+    # Colors reach CSS, and now also come from MCP clients, not only from Figma: accept
+    # '#RRGGBB' or '#RGB' (expanded) and nothing else.
+    @field_validator("hex")
+    @classmethod
+    def _css_hex(cls, value: str) -> str:
+        value = value.strip()
+        value = value if value.startswith("#") else f"#{value}"
+        if _SHORT_HEX.fullmatch(value):
+            value = "#" + "".join(c * 2 for c in value[1:])
+        if not _HEX.fullmatch(value):
+            raise ValueError(f"hex must look like '#C2410C', got {value!r}")
+        return value
 
 
 class TypeToken(BaseModel):
     name: str
     family: str
-    weight: int
-    size_px: float
+    weight: int = 400
+    size_px: float = 16
 
 
 class StyleGuide(BaseModel):

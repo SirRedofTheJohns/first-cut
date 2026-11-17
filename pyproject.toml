@@ -1,6 +1,6 @@
 [project]
 name = "first-cut"
-version = "0.1.0"
+version = "0.2.0"
 description = "Agentic workflow that turns a client brief into a reviewed WordPress site draft."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -73,3 +73,4 @@ addopts = "-m 'not integration'"
 
 [project.scripts]
 firstcut = "firstcut.cli:app"
+first-cut-mcp = "mcp_server.__main__:main"
